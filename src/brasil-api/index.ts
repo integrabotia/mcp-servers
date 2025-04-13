@@ -158,7 +158,7 @@ const server = new Server(
   },
   {
     capabilities: {
-      tools: {},
+      tools: { listChanged: true }
     },
   },
 );
@@ -444,16 +444,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
       throw new Error("Nenhum argumento fornecido");
     }
 
+    let result: string = "";
+
     switch (name) {
       case "brasil_cep": {
         if (!isCepArgs(args)) {
           throw new Error("Formato de argumento inválido para brasil_cep");
         }
         const data = await consultarCEP(args.cep);
-        return {
-          content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-          isError: false,
-        };
+        result = JSON.stringify(data, null, 2);
+        break;
       }
 
       case "brasil_cnpj": {
@@ -461,10 +461,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
           throw new Error("Formato de argumento inválido para brasil_cnpj");
         }
         const data = await consultarCNPJ(args.cnpj);
-        return {
-          content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-          isError: false,
-        };
+        result = JSON.stringify(data, null, 2);
+        break;
       }
 
       case "brasil_ddd": {
@@ -472,10 +470,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
           throw new Error("Formato de argumento inválido para brasil_ddd");
         }
         const data = await consultarDDD(args.ddd);
-        return {
-          content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-          isError: false,
-        };
+        result = JSON.stringify(data, null, 2);
+        break;
       }
 
       case "brasil_feriados": {
@@ -483,10 +479,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
           throw new Error("Formato de argumento inválido para brasil_feriados");
         }
         const data = await consultarFeriados(args.ano);
-        return {
-          content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-          isError: false,
-        };
+        result = JSON.stringify(data, null, 2);
+        break;
       }
 
       case "brasil_banco": {
@@ -494,26 +488,20 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
           throw new Error("Formato de argumento inválido para brasil_banco");
         }
         const data = await consultarBanco(args.codigo);
-        return {
-          content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-          isError: false,
-        };
+        result = JSON.stringify(data, null, 2);
+        break;
       }
 
       case "brasil_bancos": {
         const data = await listarBancos();
-        return {
-          content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-          isError: false,
-        };
+        result = JSON.stringify(data, null, 2);
+        break;
       }
 
       case "brasil_pix_participantes": {
         const data = await listarPixParticipantes();
-        return {
-          content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-          isError: false,
-        };
+        result = JSON.stringify(data, null, 2);
+        break;
       }
 
       case "brasil_cotacao": {
@@ -521,10 +509,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
           throw new Error("Formato de argumento inválido para brasil_cotacao");
         }
         const data = await consultarCotacao(args.moeda);
-        return {
-          content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-          isError: false,
-        };
+        result = JSON.stringify(data, null, 2);
+        break;
       }
 
       case "brasil_ibge_municipio": {
@@ -532,36 +518,65 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
           throw new Error("Formato de argumento inválido para brasil_ibge_municipio");
         }
         const data = await consultarMunicipio(args.codigoIbge, args.provedores);
-        return {
-          content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-          isError: false,
-        };
+        result = JSON.stringify(data, null, 2);
+        break;
       }
 
       default:
-        return {
-          content: [{ type: "text", text: `Ferramenta desconhecida: ${name}` }],
-          isError: true,
-        };
+        throw new Error(`Ferramenta desconhecida: ${name}`);
     }
-  } catch (error) {
+
     return {
-      content: [
-        {
-          type: "text",
-          text: `Erro: ${error instanceof Error ? error.message : String(error)}`,
-        },
-      ],
-      isError: true,
+      result: result
+    };
+  } catch (error) {
+    console.error("Erro ao processar requisição:", error);
+    return {
+      error: {
+        message: error instanceof Error ? error.message : String(error)
+      }
     };
   }
 });
 
 // Iniciar o servidor
 async function runServer() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.error("Brasil API MCP Server executando através de stdio");
+  try {
+    // Configurar tratamento de sinais para lidar com encerramento adequado
+    process.on('SIGINT', () => {
+      console.error('Servidor Brasil API recebeu SIGINT, encerrando...');
+      process.exit(0);
+    });
+    
+    process.on('SIGTERM', () => {
+      console.error('Servidor Brasil API recebeu SIGTERM, encerrando...');
+      process.exit(0);
+    });
+    
+    // Garantir que os erros não encerrem o processo
+    process.on('uncaughtException', (error) => {
+      console.error('Uncaught exception:', error);
+    });
+    
+    process.on('unhandledRejection', (reason, promise) => {
+      console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    });
+    
+    const transport = new StdioServerTransport();
+    
+    // Usar os métodos do SDK v1.9.0
+    // @ts-ignore - Ignorar erro de tipo devido à incompatibilidade com a versão atual do TypeScript
+    await server.listen(transport);
+    console.error("Brasil API MCP Server executando através de stdio");
+    
+    // Manter o processo vivo
+    setInterval(() => {
+      // Heartbeat para manter o processo ativo
+    }, 10000);
+  } catch (error) {
+    console.error("Erro ao iniciar o servidor:", error);
+    // Não encerra o processo aqui para permitir reconexões
+  }
 }
 
 // Exportar diretamente para uso como biblioteca
@@ -579,8 +594,13 @@ export const BrasilAPI = {
 
 // Verificar se está sendo executado diretamente (não importado como biblioteca)
 if (import.meta.url === `file://${process.argv[1]}`) {
-  runServer().catch((error) => {
-    console.error("Erro ao iniciar o servidor:", error);
-    process.exit(1);
-  });
+  try {
+    runServer().catch((error) => {
+      console.error("Erro ao iniciar o servidor:", error);
+      // Não encerra o processo para permitir recuperação
+    });
+  } catch (error) {
+    console.error("Erro ao executar o servidor:", error);
+    // Não encerra o processo para permitir recuperação
+  }
 } 

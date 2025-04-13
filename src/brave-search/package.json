@@ -1,6 +1,6 @@
 {
     "name": "@integrabot/brave-search",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "description": "MCP server for Brave Search API integration",
     "license": "MIT",
     "author": "integrabotmcp",
@@ -19,7 +19,7 @@
       "watch": "tsc --watch"
     },
     "dependencies": {
-      "@modelcontextprotocol/sdk": "1.0.1"
+      "@modelcontextprotocol/sdk": "1.9.0"
     },
     "devDependencies": {
       "@types/node": "^22",

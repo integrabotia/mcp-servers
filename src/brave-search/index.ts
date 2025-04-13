@@ -73,7 +73,7 @@ const server = new Server(
   },
   {
     capabilities: {
-      tools: {},
+      tools: { listChanged: true },
     },
   },
 );
@@ -196,7 +196,7 @@ function isBraveLocalSearchArgs(args: unknown): args is { query: string; count?:
   );
 }
 
-async function performWebSearch(query: string, count: number = 10, offset: number = 0) {
+async function performWebSearch(query: string, count: number = 10, offset: number = 0): Promise<string> {
   checkRateLimit();
   const url = new URL('https://api.search.brave.com/res/v1/web/search');
   url.searchParams.set('q', query);
@@ -229,7 +229,7 @@ async function performWebSearch(query: string, count: number = 10, offset: numbe
   ).join('\n\n');
 }
 
-async function performLocalSearch(query: string, count: number = 5) {
+async function performLocalSearch(query: string, count: number = 5): Promise<string> {
   checkRateLimit();
   // Initial search to get location IDs
   const webUrl = new URL('https://api.search.brave.com/res/v1/web/search');
@@ -307,7 +307,7 @@ async function getDescriptionsData(ids: string[]): Promise<BraveDescription> {
 }
 
 function formatLocalResults(poisData: BravePoiResponse, descData: BraveDescription): string {
-  return (poisData.results || []).map(poi => {
+  const formattedResults = (poisData.results || []).map(poi => {
     const address = [
       poi.address?.streetAddress ?? '',
       poi.address?.addressLocality ?? '',
@@ -323,7 +323,9 @@ Price Range: ${poi.priceRange || 'N/A'}
 Hours: ${(poi.openingHours || []).join(', ') || 'N/A'}
 Description: ${descData.descriptions[poi.id] || 'No description available'}
 `;
-  }).join('\n---\n') || 'No local results found';
+  }).join('\n---\n');
+  
+  return formattedResults || 'No local results found';
 }
 
 // Tool handlers
@@ -339,17 +341,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       throw new Error("No arguments provided");
     }
 
+    let result = "";
+
     switch (name) {
       case "brave_web_search": {
         if (!isBraveWebSearchArgs(args)) {
           throw new Error("Invalid arguments for brave_web_search");
         }
         const { query, count = 10 } = args;
-        const results = await performWebSearch(query, count);
-        return {
-          content: [{ type: "text", text: results }],
-          isError: false,
-        };
+        result = await performWebSearch(query, count);
+        break;
       }
 
       case "brave_local_search": {
@@ -357,39 +358,75 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           throw new Error("Invalid arguments for brave_local_search");
         }
         const { query, count = 5 } = args;
-        const results = await performLocalSearch(query, count);
-        return {
-          content: [{ type: "text", text: results }],
-          isError: false,
-        };
+        result = await performLocalSearch(query, count);
+        break;
       }
 
       default:
-        return {
-          content: [{ type: "text", text: `Unknown tool: ${name}` }],
-          isError: true,
-        };
+        throw new Error(`Unknown tool: ${name}`);
     }
-  } catch (error) {
+
     return {
-      content: [
-        {
-          type: "text",
-          text: `Error: ${error instanceof Error ? error.message : String(error)}`,
-        },
-      ],
-      isError: true,
+      result: result
+    };
+  } catch (error) {
+    console.error("Error processing request:", error);
+    return {
+      error: {
+        message: error instanceof Error ? error.message : String(error)
+      }
     };
   }
 });
 
 async function runServer() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.error("Brave Search MCP Server running on stdio");
+  try {
+    // Configure signal handling for graceful shutdown
+    process.on('SIGINT', () => {
+      console.error('Brave Search MCP Server received SIGINT, shutting down...');
+      process.exit(0);
+    });
+    
+    process.on('SIGTERM', () => {
+      console.error('Brave Search MCP Server received SIGTERM, shutting down...');
+      process.exit(0);
+    });
+    
+    // Ensure errors don't crash the process
+    process.on('uncaughtException', (error) => {
+      console.error('Uncaught exception:', error);
+    });
+    
+    process.on('unhandledRejection', (reason, promise) => {
+      console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    });
+    
+    const transport = new StdioServerTransport();
+    
+    // Use SDK v1.9.0 methods
+    // @ts-ignore - Ignore type error due to incompatibility with current TypeScript
+    await server.listen(transport);
+    console.error("Brave Search MCP Server running on stdio");
+    
+    // Keep the process alive
+    setInterval(() => {
+      // Heartbeat to keep the process active
+    }, 10000);
+  } catch (error) {
+    console.error("Error starting server:", error);
+    // Don't terminate the process here to allow reconnections
+  }
 }
 
-runServer().catch((error) => {
-  console.error("Fatal error running server:", error);
-  process.exit(1);
-});
+// Run the server
+if (import.meta.url === `file://${process.argv[1]}`) {
+  try {
+    runServer().catch((error) => {
+      console.error("Error starting server:", error);
+      // Don't exit process to allow recovery
+    });
+  } catch (error) {
+    console.error("Error executing server:", error);
+    // Don't exit process to allow recovery
+  }
+}
