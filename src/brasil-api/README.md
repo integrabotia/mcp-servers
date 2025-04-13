@@ -2,94 +2,100 @@
 
 **Category: Government**
 
-Este servidor MCP fornece acesso a diversos dados públicos do Brasil através da [Brasil API](https://brasilapi.com.br/).
+An MCP server that provides access to various public data from Brazil through the [Brasil API](https://brasilapi.com.br/).
 
-## Ferramentas disponíveis
+## Features
 
-Este servidor MCP disponibiliza as seguintes ferramentas:
+- **Address Lookup**: Query complete address information using postal codes (CEP)
+- **Business Data**: Retrieve detailed company information using CNPJ registration numbers
+- **Geolocation**: Access municipality data and area codes (DDD) coverage
+- **Financial System**: Information about banks, PIX payment system participants, and currency exchange rates
+- **Calendar**: National holidays for specific years
 
-### Endereços
-- `brasil_cep`
-  - Consulta informações de um CEP
+## Tools
+
+### Address
+- **brasil_cep**
+  - Query address information from a Brazilian postal code
   - Inputs:
-    - `cep` (string): CEP a ser consultado, apenas números ou no formato 00000-000
+    - `cep` (string): Postal code in numeric format or 00000-000 pattern
 
-### Empresas e Negócios
-- `brasil_cnpj`
-  - Busca dados de um CNPJ
+### Business
+- **brasil_cnpj**
+  - Retrieve company registration data from a CNPJ number
   - Inputs:
-    - `cnpj` (string): CNPJ a ser consultado, apenas números ou no formato 00.000.000/0000-00
+    - `cnpj` (string): CNPJ in numeric format or 00.000.000/0000-00 pattern
 
-### Telecomunicações
-- `brasil_ddd`
-  - Retorna cidades a partir de um DDD
+### Telecommunications
+- **brasil_ddd**
+  - List cities that use a specific area code
   - Inputs:
-    - `ddd` (string): DDD a ser consultado, apenas números (ex: 11, 21, 31)
+    - `ddd` (string): Area code (examples: 11, 21, 31)
 
-### Calendário
-- `brasil_feriados`
-  - Lista feriados nacionais de um ano específico
+### Calendar
+- **brasil_feriados**
+  - List national holidays for a specific year
   - Inputs:
-    - `ano` (string): Ano a ser consultado no formato YYYY (ex: 2023, 2024)
+    - `ano` (string): Year in YYYY format (examples: 2023, 2024)
 
-### Sistema Financeiro
-- `brasil_banco`
-  - Busca informações de bancos brasileiros
+### Financial System
+- **brasil_banco**
+  - Get information about a specific Brazilian bank
   - Inputs:
-    - `codigo` (string): Código do banco, por exemplo: 001, 237, 341
-- `brasil_bancos`
-  - Lista todos os bancos brasileiros
-  - Inputs: (sem parâmetros)
-- `brasil_pix_participantes`
-  - Lista participantes do PIX
-  - Inputs: (sem parâmetros)
-- `brasil_cotacao`
-  - Obtém cotação do dólar, euro e outras moedas
+    - `codigo` (string): Bank code (examples: 001, 237, 341)
+- **brasil_bancos**
+  - List all Brazilian banks and their information
+  - Inputs: (no parameters)
+- **brasil_pix_participantes**
+  - List all institutions participating in the PIX payment system
+  - Inputs: (no parameters)
+- **brasil_cotacao**
+  - Get exchange rates for currencies against the Brazilian Real
   - Inputs:
-    - `moeda` (string): Código da moeda (USD, EUR, etc)
+    - `moeda` (string): Currency code (USD, EUR, etc.)
 
-### Geografia e Localização
-- `brasil_ibge_municipio`
-  - Busca municípios brasileiros
+### Geography
+- **brasil_ibge_municipio**
+  - Search for Brazilian municipalities using IBGE code
   - Inputs:
-    - `codigoIbge` (string): Código IBGE do município
-    - `provedores` (string, opcional): Provedores de dados (IBGE)
+    - `codigoIbge` (string): IBGE municipality code
+    - `provedores` (string, optional): Data providers (IBGE)
 
-## Instalação
+## Installation
 
 ```bash
 npm install @integrabot/brasil-api
 ```
 
-## Uso
+## Usage
 
-### Como servidor MCP (para integração com LLMs)
+### As an MCP Server (for LLM integration)
 
 ```bash
 npx brasil-api
 ```
 
-### Como biblioteca
+### As a Library
 
 ```typescript
 import { BrasilAPI } from '@integrabot/brasil-api';
 
-// Exemplos de uso
+// Example usage
 const cep = await BrasilAPI.consultarCEP('01001000');
 const cnpj = await BrasilAPI.consultarCNPJ('00000000000191');
 const ddd = await BrasilAPI.consultarDDD('11');
 ```
 
-## Configuração
+## Configuration
 
-A Brasil API é um serviço gratuito que não requer configuração de chave de API, mas possui limites de uso.
+Brasil API is a free service that doesn't require an API key, but it has usage limits.
 
-## Limites de Uso
+## Rate Limits
 
-Este servidor implementa rate limiting para respeitar os limites da Brasil API:
-- 2 requisições por segundo
-- 60 requisições por minuto
+This server implements rate limiting to respect Brasil API's usage limits:
+- 2 requests per second
+- 60 requests per minute
 
 ## Timeouts
 
-Este servidor implementa timeout de 15 segundos em todas as requisições à API para evitar bloqueios. 
+This server implements a 15-second timeout on all API requests to prevent blocking. 
