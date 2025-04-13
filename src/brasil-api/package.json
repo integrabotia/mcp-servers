@@ -1,0 +1,30 @@
+{
+  "name": "@integrabot/brasil-api",
+  "version": "0.0.8",
+  "description": "MCP server for Brasil API integration",
+  "license": "MIT",
+  "author": "integrabotmcp",
+  "homepage": "https://github.com/org/integrabot/brasil-api",
+  "bugs": "https://github.com/org/integrabot/brasil-api/issues",
+  "type": "module",
+  "bin": {
+    "brasil-api": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepare": "npm run build",
+    "watch": "tsc --watch"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.8.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+} 
