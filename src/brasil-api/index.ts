@@ -564,9 +564,8 @@ async function runServer() {
     
     const transport = new StdioServerTransport();
     
-    // Usar os métodos do SDK v1.9.0
-    // @ts-ignore - Ignorar erro de tipo devido à incompatibilidade com a versão atual do TypeScript
-    await server.listen(transport);
+    // Usar connect() de acordo com o exemplo fornecido
+    await server.connect(transport);
     console.error("Brasil API MCP Server executando através de stdio");
     
     // Manter o processo vivo

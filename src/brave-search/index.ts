@@ -403,9 +403,8 @@ async function runServer() {
     
     const transport = new StdioServerTransport();
     
-    // Use SDK v1.9.0 methods
-    // @ts-ignore - Ignore type error due to incompatibility with current TypeScript
-    await server.listen(transport);
+    // Use connect() method to work with the current SDK version
+    await server.connect(transport);
     console.error("Brave Search MCP Server running on stdio");
     
     // Keep the process alive
