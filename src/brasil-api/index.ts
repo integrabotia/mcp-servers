@@ -222,48 +222,48 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}, timeout 
 }
 
 // Funções de tipo para validação
-function isCepArgs(args: unknown): args is { cep: string } {
+function isCepArgs(args: unknown): args is { cep: string | number } {
   return (
     typeof args === "object" &&
     args !== null &&
     "cep" in args &&
-    typeof (args as { cep: string }).cep === "string"
+    (typeof (args as any).cep === "string" || typeof (args as any).cep === "number")
   );
 }
 
-function isCnpjArgs(args: unknown): args is { cnpj: string } {
+function isCnpjArgs(args: unknown): args is { cnpj: string | number } {
   return (
     typeof args === "object" &&
     args !== null &&
     "cnpj" in args &&
-    typeof (args as { cnpj: string }).cnpj === "string"
+    (typeof (args as any).cnpj === "string" || typeof (args as any).cnpj === "number")
   );
 }
 
-function isDddArgs(args: unknown): args is { ddd: string } {
+function isDddArgs(args: unknown): args is { ddd: string | number } {
   return (
     typeof args === "object" &&
     args !== null &&
     "ddd" in args &&
-    typeof (args as { ddd: string }).ddd === "string"
+    (typeof (args as any).ddd === "string" || typeof (args as any).ddd === "number")
   );
 }
 
-function isFeriadosArgs(args: unknown): args is { ano: string } {
+function isFeriadosArgs(args: unknown): args is { ano: string | number } {
   return (
     typeof args === "object" &&
     args !== null &&
     "ano" in args &&
-    typeof (args as { ano: string }).ano === "string"
+    (typeof (args as any).ano === "string" || typeof (args as any).ano === "number")
   );
 }
 
-function isBancoArgs(args: unknown): args is { codigo: string } {
+function isBancoArgs(args: unknown): args is { codigo: string | number } {
   return (
     typeof args === "object" &&
     args !== null &&
     "codigo" in args &&
-    typeof (args as { codigo: string }).codigo === "string"
+    (typeof (args as any).codigo === "string" || typeof (args as any).codigo === "number")
   );
 }
 
@@ -272,24 +272,24 @@ function isCotacaoArgs(args: unknown): args is { moeda: string } {
     typeof args === "object" &&
     args !== null &&
     "moeda" in args &&
-    typeof (args as { moeda: string }).moeda === "string"
+    typeof (args as any).moeda === "string"
   );
 }
 
-function isIbgeMunicipioArgs(args: unknown): args is { codigoIbge: string; provedores?: string } {
+function isIbgeMunicipioArgs(args: unknown): args is { codigoIbge: string | number; provedores?: string } {
   return (
     typeof args === "object" &&
     args !== null &&
     "codigoIbge" in args &&
-    typeof (args as { codigoIbge: string }).codigoIbge === "string"
+    (typeof (args as any).codigoIbge === "string" || typeof (args as any).codigoIbge === "number")
   );
 }
 
 // Implementações de requisições à API
-async function consultarCEP(cep: string) {
+async function consultarCEP(cep: string | number) {
   checkRateLimit();
-  // Remover caracteres não numéricos
-  const cepLimpo = cep.replace(/\D/g, '');
+  // Remover caracteres não numéricos e garantir que é string
+  const cepLimpo = String(cep).replace(/\D/g, '');
   
   const url = `https://brasilapi.com.br/api/cep/v2/${cepLimpo}`;
   const response = await fetchWithTimeout(url);
@@ -304,10 +304,10 @@ async function consultarCEP(cep: string) {
   return await response.json();
 }
 
-async function consultarCNPJ(cnpj: string) {
+async function consultarCNPJ(cnpj: string | number) {
   checkRateLimit();
   // Remover caracteres não numéricos
-  const cnpjLimpo = cnpj.replace(/\D/g, '');
+  const cnpjLimpo = String(cnpj).replace(/\D/g, '');
   
   const url = `https://brasilapi.com.br/api/cnpj/v1/${cnpjLimpo}`;
   const response = await fetchWithTimeout(url);
@@ -322,7 +322,7 @@ async function consultarCNPJ(cnpj: string) {
   return await response.json();
 }
 
-async function consultarDDD(ddd: string) {
+async function consultarDDD(ddd: string | number) {
   checkRateLimit();
   const url = `https://brasilapi.com.br/api/ddd/v1/${ddd}`;
   const response = await fetchWithTimeout(url);
@@ -337,7 +337,7 @@ async function consultarDDD(ddd: string) {
   return await response.json();
 }
 
-async function consultarFeriados(ano: string) {
+async function consultarFeriados(ano: string | number) {
   checkRateLimit();
   const url = `https://brasilapi.com.br/api/feriados/v1/${ano}`;
   const response = await fetchWithTimeout(url);
@@ -349,7 +349,7 @@ async function consultarFeriados(ano: string) {
   return await response.json();
 }
 
-async function consultarBanco(codigo: string) {
+async function consultarBanco(codigo: string | number) {
   checkRateLimit();
   const url = `https://brasilapi.com.br/api/banks/v1/${codigo}`;
   const response = await fetchWithTimeout(url);
@@ -403,7 +403,7 @@ async function consultarCotacao(moeda: string) {
   return await response.json();
 }
 
-async function consultarMunicipio(codigoIbge: string, provedores: string = "IBGE") {
+async function consultarMunicipio(codigoIbge: string | number, provedores: string = "IBGE") {
   checkRateLimit();
   const url = `https://brasilapi.com.br/api/ibge/municipios/v1/${codigoIbge}?providers=${provedores}`;
   const response = await fetchWithTimeout(url);
@@ -527,14 +527,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
     }
 
     return {
-      result: result
+      result: result,
+      content: [result]
     };
   } catch (error) {
     console.error("Erro ao processar requisição:", error);
     return {
       error: {
         message: error instanceof Error ? error.message : String(error)
-      }
+      },
+      content: []
     };
   }
 });
