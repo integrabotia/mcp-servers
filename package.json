@@ -1,0 +1,21 @@
+{
+    "name": "@integrabotia/mcp-servers",
+    "private": true,
+    "version": "0.6.2",
+    "description": "Integrabotia MCP servers",
+    "license": "MIT",
+    "author": "Integrabotia, PBC (https://integrabot.ai)",
+    "homepage": "https://integrabot.ai",
+    "bugs": "https://github.com/integrabotia/mcp-servers/issues",
+    "type": "module",
+    "workspaces": [
+      "src/*"
+    ],
+    "files": [],
+    "scripts": {
+      "build": "npm run build --workspaces",
+      "watch": "npm run watch --workspaces",
+      "publish-all": "npm publish --workspaces --access public",
+      "link-all": "npm link --workspaces"
+    }
+  }
