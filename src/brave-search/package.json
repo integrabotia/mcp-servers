@@ -1,6 +1,6 @@
 {
     "name": "@integrabot/brave-search",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "description": "MCP server for Brave Search API integration",
     "license": "MIT",
     "author": "integrabotmcp",

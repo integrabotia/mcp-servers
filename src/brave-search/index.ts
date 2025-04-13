@@ -110,6 +110,25 @@ function checkRateLimit() {
   requestCount.month++;
 }
 
+// Definir timeout para as requisições à API
+async function fetchWithTimeout(url: URL | string, options: RequestInit = {}, timeout = 15000) {
+  const controller = new AbortController();
+  const { signal } = controller;
+  
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, timeout);
+  
+  try {
+    const response = await fetch(url.toString(), { ...options, signal });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw error;
+  }
+}
+
 interface BraveWeb {
   web?: {
     results?: Array<{
@@ -184,7 +203,7 @@ async function performWebSearch(query: string, count: number = 10, offset: numbe
   url.searchParams.set('count', Math.min(count, 20).toString()); // API limit
   url.searchParams.set('offset', offset.toString());
 
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     headers: {
       'Accept': 'application/json',
       'Accept-Encoding': 'gzip',
@@ -219,7 +238,7 @@ async function performLocalSearch(query: string, count: number = 5) {
   webUrl.searchParams.set('result_filter', 'locations');
   webUrl.searchParams.set('count', Math.min(count, 20).toString());
 
-  const webResponse = await fetch(webUrl, {
+  const webResponse = await fetchWithTimeout(webUrl, {
     headers: {
       'Accept': 'application/json',
       'Accept-Encoding': 'gzip',
@@ -251,7 +270,7 @@ async function getPoisData(ids: string[]): Promise<BravePoiResponse> {
   checkRateLimit();
   const url = new URL('https://api.search.brave.com/res/v1/local/pois');
   ids.filter(Boolean).forEach(id => url.searchParams.append('ids', id));
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     headers: {
       'Accept': 'application/json',
       'Accept-Encoding': 'gzip',
@@ -271,7 +290,7 @@ async function getDescriptionsData(ids: string[]): Promise<BraveDescription> {
   checkRateLimit();
   const url = new URL('https://api.search.brave.com/res/v1/local/descriptions');
   ids.filter(Boolean).forEach(id => url.searchParams.append('ids', id));
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     headers: {
       'Accept': 'application/json',
       'Accept-Encoding': 'gzip',

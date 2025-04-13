@@ -1,5 +1,7 @@
 # Brave Search MCP Server
 
+**Category: Search**
+
 An MCP server that integrates the Brave Search API, providing web search and local search capabilities.
 
 ## Features
@@ -11,6 +13,7 @@ An MCP server that integrates the Brave Search API, providing web search and loc
 
 ## Tools
 
+### Web Search
 - **brave_web_search**
   - Execute web searches with pagination and filtering
   - Inputs:
@@ -18,6 +21,7 @@ An MCP server that integrates the Brave Search API, providing web search and loc
     - `count` (number, optional): Results per page (max 20)
     - `offset` (number, optional): Pagination offset (max 9)
 
+### Local Discovery
 - **brave_local_search**
   - Search for local businesses and services
   - Inputs:
@@ -78,6 +82,9 @@ Add this to your `claude_desktop_config.json`:
 }
 ```
 
+## Timeouts
+
+This server implements a 15-second timeout on all API requests to prevent blocking.
 
 ## Build
 
