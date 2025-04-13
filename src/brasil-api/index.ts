@@ -444,15 +444,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
       throw new Error("Nenhum argumento fornecido");
     }
 
-    let result: string = "";
+    let result: any;
 
     switch (name) {
       case "brasil_cep": {
         if (!isCepArgs(args)) {
           throw new Error("Formato de argumento inválido para brasil_cep");
         }
-        const data = await consultarCEP(args.cep);
-        result = JSON.stringify(data, null, 2);
+        // Garantir que o CEP seja uma string
+        const cepStr = String(args.cep);
+        result = await consultarCEP(cepStr);
         break;
       }
 
@@ -460,8 +461,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         if (!isCnpjArgs(args)) {
           throw new Error("Formato de argumento inválido para brasil_cnpj");
         }
-        const data = await consultarCNPJ(args.cnpj);
-        result = JSON.stringify(data, null, 2);
+        // Garantir que o CNPJ seja uma string
+        const cnpjStr = String(args.cnpj);
+        result = await consultarCNPJ(cnpjStr);
         break;
       }
 
@@ -469,8 +471,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         if (!isDddArgs(args)) {
           throw new Error("Formato de argumento inválido para brasil_ddd");
         }
-        const data = await consultarDDD(args.ddd);
-        result = JSON.stringify(data, null, 2);
+        // Garantir que o DDD seja uma string
+        const dddStr = String(args.ddd);
+        result = await consultarDDD(dddStr);
         break;
       }
 
@@ -478,8 +481,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         if (!isFeriadosArgs(args)) {
           throw new Error("Formato de argumento inválido para brasil_feriados");
         }
-        const data = await consultarFeriados(args.ano);
-        result = JSON.stringify(data, null, 2);
+        // Garantir que o ano seja uma string
+        const anoStr = String(args.ano);
+        result = await consultarFeriados(anoStr);
         break;
       }
 
@@ -487,20 +491,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         if (!isBancoArgs(args)) {
           throw new Error("Formato de argumento inválido para brasil_banco");
         }
-        const data = await consultarBanco(args.codigo);
-        result = JSON.stringify(data, null, 2);
+        // Garantir que o código seja uma string
+        const codigoStr = String(args.codigo);
+        result = await consultarBanco(codigoStr);
         break;
       }
 
       case "brasil_bancos": {
-        const data = await listarBancos();
-        result = JSON.stringify(data, null, 2);
+        result = await listarBancos();
         break;
       }
 
       case "brasil_pix_participantes": {
-        const data = await listarPixParticipantes();
-        result = JSON.stringify(data, null, 2);
+        result = await listarPixParticipantes();
         break;
       }
 
@@ -508,8 +511,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         if (!isCotacaoArgs(args)) {
           throw new Error("Formato de argumento inválido para brasil_cotacao");
         }
-        const data = await consultarCotacao(args.moeda);
-        result = JSON.stringify(data, null, 2);
+        result = await consultarCotacao(args.moeda);
         break;
       }
 
@@ -517,8 +519,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         if (!isIbgeMunicipioArgs(args)) {
           throw new Error("Formato de argumento inválido para brasil_ibge_municipio");
         }
-        const data = await consultarMunicipio(args.codigoIbge, args.provedores);
-        result = JSON.stringify(data, null, 2);
+        // Garantir que o código IBGE seja uma string
+        const codigoIbgeStr = String(args.codigoIbge);
+        result = await consultarMunicipio(codigoIbgeStr, args.provedores);
         break;
       }
 
@@ -526,8 +529,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         throw new Error(`Ferramenta desconhecida: ${name}`);
     }
 
+    // Retornar o objeto diretamente, não como string JSON
     return {
-      result: result,
+      result: JSON.stringify(result, null, 2),
       content: [result]
     };
   } catch (error) {
