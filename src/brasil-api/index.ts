@@ -591,15 +591,8 @@ export const BrasilAPI = {
   consultarMunicipio,
 };
 
-// Verificar se está sendo executado diretamente (não importado como biblioteca)
-if (import.meta.url === `file://${process.argv[1]}`) {
-  try {
-    runServer().catch((error) => {
-      console.error("Erro ao iniciar o servidor:", error);
-      // Não encerra o processo para permitir recuperação
-    });
-  } catch (error) {
-    console.error("Erro ao executar o servidor:", error);
-    // Não encerra o processo para permitir recuperação
-  }
-} 
+runServer().catch((error) => {
+  console.error("Error starting server:", error);
+  // Don't exit process to allow recovery
+  process.exit(1);
+});

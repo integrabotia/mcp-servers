@@ -1,6 +1,6 @@
 {
   "name": "@integrabot/brasil-api",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "MCP server for Brasil API integration",
   "license": "MIT",
   "author": "integrabotmcp",

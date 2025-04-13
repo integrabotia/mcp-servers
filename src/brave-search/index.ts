@@ -417,15 +417,8 @@ async function runServer() {
   }
 }
 
-// Run the server
-if (import.meta.url === `file://${process.argv[1]}`) {
-  try {
-    runServer().catch((error) => {
-      console.error("Error starting server:", error);
-      // Don't exit process to allow recovery
-    });
-  } catch (error) {
-    console.error("Error executing server:", error);
-    // Don't exit process to allow recovery
-  }
-}
+runServer().catch((error) => {
+  console.error("Error starting server:", error);
+  // Don't exit process to allow recovery
+  process.exit(1);
+});
