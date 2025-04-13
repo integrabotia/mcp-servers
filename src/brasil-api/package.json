@@ -1,6 +1,6 @@
 {
   "name": "@integrabot/brasil-api",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "MCP server for Brasil API integration",
   "license": "MIT",
   "author": "integrabotmcp",
@@ -14,16 +14,17 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc && shx chmod +x dist/*.js",
+    "build": "tsc",
     "prepare": "npm run build",
     "watch": "tsc --watch"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.9.0"
+    "@modelcontextprotocol/sdk": "^1.8.0",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@types/node": "^22",
-    "shx": "^0.3.4",
-    "typescript": "^5.6.2"
+    "@types/node": "^20.11.24",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
   }
 } 

@@ -1,167 +1,60 @@
 #!/usr/bin/env node
 
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-  Tool,
-} from "@modelcontextprotocol/sdk/types.js";
+import { z } from "zod";
 
-// Definição das ferramentas
-const CEP_TOOL: Tool = {
-  name: "brasil_cep",
-  description:
-    "Consulta informações de endereço a partir de um CEP (Código de Endereçamento Postal) brasileiro. " +
-    "Retorna dados como logradouro, bairro, cidade, estado e outras informações relacionadas ao CEP.",
-  inputSchema: {
-    type: "object",
-    properties: {
-      cep: {
-        type: "string",
-        description: "CEP a ser consultado, apenas números ou no formato 00000-000",
-      },
-    },
-    required: ["cep"],
-  },
-};
+// Esquemas Zod para validação de parâmetros
+const cepSchema = z.object({
+  cep: z.string().or(z.number()).transform(val => String(val))
+    .describe("CEP a ser consultado, apenas números ou no formato 00000-000")
+});
 
-const CNPJ_TOOL: Tool = {
-  name: "brasil_cnpj",
-  description:
-    "Busca dados cadastrais de empresas brasileiras a partir de um número de CNPJ. " +
-    "Retorna informações como razão social, nome fantasia, situação cadastral, data de abertura, endereço, etc.",
-  inputSchema: {
-    type: "object",
-    properties: {
-      cnpj: {
-        type: "string",
-        description: "CNPJ a ser consultado, apenas números ou no formato 00.000.000/0000-00",
-      },
-    },
-    required: ["cnpj"],
-  },
-};
+const cnpjSchema = z.object({
+  cnpj: z.string().or(z.number()).transform(val => String(val))
+    .describe("CNPJ a ser consultado, apenas números ou no formato 00.000.000/0000-00")
+});
 
-const DDD_TOOL: Tool = {
-  name: "brasil_ddd",
-  description:
-    "Retorna todas as cidades brasileiras que possuem o DDD informado.",
-  inputSchema: {
-    type: "object",
-    properties: {
-      ddd: {
-        type: "string",
-        description: "DDD a ser consultado, apenas números (ex: 11, 21, 31)",
-      },
-    },
-    required: ["ddd"],
-  },
-};
+const dddSchema = z.object({
+  ddd: z.string().or(z.number()).transform(val => String(val))
+    .describe("DDD a ser consultado, apenas números (ex: 11, 21, 31)")
+});
 
-const FERIADOS_TOOL: Tool = {
-  name: "brasil_feriados",
-  description:
-    "Lista todos os feriados nacionais do Brasil para o ano especificado.",
-  inputSchema: {
-    type: "object",
-    properties: {
-      ano: {
-        type: "string",
-        description: "Ano a ser consultado no formato YYYY (ex: 2023, 2024)",
-      },
-    },
-    required: ["ano"],
-  },
-};
+const feriadosSchema = z.object({
+  ano: z.string().or(z.number()).transform(val => String(val))
+    .describe("Ano a ser consultado no formato YYYY (ex: 2023, 2024)")
+});
 
-const BANCO_TOOL: Tool = {
-  name: "brasil_banco",
-  description:
-    "Retorna informações de um banco brasileiro a partir do código, nome ou parte do nome do banco.",
-  inputSchema: {
-    type: "object",
-    properties: {
-      codigo: {
-        type: "string",
-        description: "Código do banco, por exemplo: 001, 237, 341",
-      },
-    },
-    required: ["codigo"],
-  },
-};
+const bancoSchema = z.object({
+  codigo: z.string().or(z.number()).transform(val => String(val))
+    .describe("Código do banco, por exemplo: 001, 237, 341")
+});
 
-const BANCOS_TOOL: Tool = {
-  name: "brasil_bancos",
-  description:
-    "Lista todos os bancos brasileiros e suas informações.",
-  inputSchema: {
-    type: "object",
-    properties: {},
-    required: [],
-  },
-};
+const bancosSchema = z.object({});
 
-const PIX_PARTICIPANTES_TOOL: Tool = {
-  name: "brasil_pix_participantes",
-  description:
-    "Lista as instituições participantes do arranjo de pagamentos PIX no Brasil.",
-  inputSchema: {
-    type: "object",
-    properties: {},
-    required: [],
-  },
-};
+const pixParticipantesSchema = z.object({});
 
-const COTACAO_TOOL: Tool = {
-  name: "brasil_cotacao",
-  description:
-    "Obtém a cotação do dia para moedas como dólar, euro e outras em relação ao real brasileiro.",
-  inputSchema: {
-    type: "object",
-    properties: {
-      moeda: {
-        type: "string",
-        description: "Código da moeda (USD, EUR, etc)",
-      },
-    },
-    required: ["moeda"],
-  },
-};
+const cotacaoSchema = z.object({
+  moeda: z.string()
+    .describe("Código da moeda (USD, EUR, etc)")
+});
 
-const IBGE_MUNICIPIO_TOOL: Tool = {
-  name: "brasil_ibge_municipio",
-  description:
-    "Busca municípios brasileiros utilizando o código do IBGE ou filtros de busca.",
-  inputSchema: {
-    type: "object",
-    properties: {
-      codigoIbge: {
-        type: "string",
-        description: "Código IBGE do município",
-      },
-      provedores: {
-        type: "string",
-        description: "Provedores de dados (IBGE)",
-        default: "IBGE",
-      },
-    },
-    required: ["codigoIbge"],
-  },
-};
+const ibgeMunicipioSchema = z.object({
+  codigoIbge: z.string().or(z.number()).transform(val => String(val))
+    .describe("Código IBGE do município"),
+  provedores: z.string().default("IBGE")
+    .describe("Provedores de dados (IBGE)")
+});
 
-// Servidor MCP
-const server = new Server(
-  {
-    name: "brasil-api",
-    version: "0.1.0",
+// Create server instance
+const mcpServer = new McpServer({
+  name: "brasil-api",
+  version: "0.0.8",
+  capabilities: {
+    resources: {},
+    tools: {},
   },
-  {
-    capabilities: {
-      tools: { listChanged: true }
-    },
-  },
-);
+});
 
 // Controle de taxa de requisições
 const RATE_LIMIT = {
@@ -221,75 +114,11 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}, timeout 
   }
 }
 
-// Funções de tipo para validação
-function isCepArgs(args: unknown): args is { cep: string | number } {
-  return (
-    typeof args === "object" &&
-    args !== null &&
-    "cep" in args &&
-    (typeof (args as any).cep === "string" || typeof (args as any).cep === "number")
-  );
-}
-
-function isCnpjArgs(args: unknown): args is { cnpj: string | number } {
-  return (
-    typeof args === "object" &&
-    args !== null &&
-    "cnpj" in args &&
-    (typeof (args as any).cnpj === "string" || typeof (args as any).cnpj === "number")
-  );
-}
-
-function isDddArgs(args: unknown): args is { ddd: string | number } {
-  return (
-    typeof args === "object" &&
-    args !== null &&
-    "ddd" in args &&
-    (typeof (args as any).ddd === "string" || typeof (args as any).ddd === "number")
-  );
-}
-
-function isFeriadosArgs(args: unknown): args is { ano: string | number } {
-  return (
-    typeof args === "object" &&
-    args !== null &&
-    "ano" in args &&
-    (typeof (args as any).ano === "string" || typeof (args as any).ano === "number")
-  );
-}
-
-function isBancoArgs(args: unknown): args is { codigo: string | number } {
-  return (
-    typeof args === "object" &&
-    args !== null &&
-    "codigo" in args &&
-    (typeof (args as any).codigo === "string" || typeof (args as any).codigo === "number")
-  );
-}
-
-function isCotacaoArgs(args: unknown): args is { moeda: string } {
-  return (
-    typeof args === "object" &&
-    args !== null &&
-    "moeda" in args &&
-    typeof (args as any).moeda === "string"
-  );
-}
-
-function isIbgeMunicipioArgs(args: unknown): args is { codigoIbge: string | number; provedores?: string } {
-  return (
-    typeof args === "object" &&
-    args !== null &&
-    "codigoIbge" in args &&
-    (typeof (args as any).codigoIbge === "string" || typeof (args as any).codigoIbge === "number")
-  );
-}
-
 // Implementações de requisições à API
-async function consultarCEP(cep: string | number) {
+async function consultarCEP(cep: string) {
   checkRateLimit();
   // Remover caracteres não numéricos e garantir que é string
-  const cepLimpo = String(cep).replace(/\D/g, '');
+  const cepLimpo = cep.replace(/\D/g, '');
   
   const url = `https://brasilapi.com.br/api/cep/v2/${cepLimpo}`;
   const response = await fetchWithTimeout(url);
@@ -304,10 +133,10 @@ async function consultarCEP(cep: string | number) {
   return await response.json();
 }
 
-async function consultarCNPJ(cnpj: string | number) {
+async function consultarCNPJ(cnpj: string) {
   checkRateLimit();
   // Remover caracteres não numéricos
-  const cnpjLimpo = String(cnpj).replace(/\D/g, '');
+  const cnpjLimpo = cnpj.replace(/\D/g, '');
   
   const url = `https://brasilapi.com.br/api/cnpj/v1/${cnpjLimpo}`;
   const response = await fetchWithTimeout(url);
@@ -322,7 +151,7 @@ async function consultarCNPJ(cnpj: string | number) {
   return await response.json();
 }
 
-async function consultarDDD(ddd: string | number) {
+async function consultarDDD(ddd: string) {
   checkRateLimit();
   const url = `https://brasilapi.com.br/api/ddd/v1/${ddd}`;
   const response = await fetchWithTimeout(url);
@@ -337,7 +166,7 @@ async function consultarDDD(ddd: string | number) {
   return await response.json();
 }
 
-async function consultarFeriados(ano: string | number) {
+async function consultarFeriados(ano: string) {
   checkRateLimit();
   const url = `https://brasilapi.com.br/api/feriados/v1/${ano}`;
   const response = await fetchWithTimeout(url);
@@ -349,7 +178,7 @@ async function consultarFeriados(ano: string | number) {
   return await response.json();
 }
 
-async function consultarBanco(codigo: string | number) {
+async function consultarBanco(codigo: string) {
   checkRateLimit();
   const url = `https://brasilapi.com.br/api/banks/v1/${codigo}`;
   const response = await fetchWithTimeout(url);
@@ -403,7 +232,7 @@ async function consultarCotacao(moeda: string) {
   return await response.json();
 }
 
-async function consultarMunicipio(codigoIbge: string | number, provedores: string = "IBGE") {
+async function consultarMunicipio(codigoIbge: string, provedores: string = "IBGE") {
   checkRateLimit();
   const url = `https://brasilapi.com.br/api/ibge/municipios/v1/${codigoIbge}?providers=${provedores}`;
   const response = await fetchWithTimeout(url);
@@ -418,135 +247,193 @@ async function consultarMunicipio(codigoIbge: string | number, provedores: strin
   return await response.json();
 }
 
-// Registrar as ferramentas
-server.setRequestHandler(ListToolsRequestSchema, async () => {
-  return {
-    tools: [
-      CEP_TOOL,
-      CNPJ_TOOL,
-      DDD_TOOL,
-      FERIADOS_TOOL,
-      BANCO_TOOL,
-      BANCOS_TOOL,
-      PIX_PARTICIPANTES_TOOL,
-      COTACAO_TOOL,
-      IBGE_MUNICIPIO_TOOL,
-    ],
-  };
-});
-
-// Manipulador de chamadas de ferramentas
-server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
-  try {
-    const { name, arguments: args } = request.params;
-
-    if (!args) {
-      throw new Error("Nenhum argumento fornecido");
+// Registrar as ferramentas com o servidor
+mcpServer.tool(
+  "brasil_cep",
+  "Consulta informações de endereço a partir de um CEP (Código de Endereçamento Postal) brasileiro. Retorna dados como logradouro, bairro, cidade, estado e outras informações relacionadas ao CEP.",
+  cepSchema.shape,
+  async ({ cep }) => {
+    try {
+      const result = await consultarCEP(cep);
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
+      };
+    } catch (error) {
+      return {
+        content: [{ type: "text", text: error instanceof Error ? error.message : String(error) }],
+        isError: true
+      };
     }
-
-    let result: any;
-
-    switch (name) {
-      case "brasil_cep": {
-        if (!isCepArgs(args)) {
-          throw new Error("Formato de argumento inválido para brasil_cep");
-        }
-        // Garantir que o CEP seja uma string
-        const cepStr = String(args.cep);
-        result = await consultarCEP(cepStr);
-        break;
-      }
-
-      case "brasil_cnpj": {
-        if (!isCnpjArgs(args)) {
-          throw new Error("Formato de argumento inválido para brasil_cnpj");
-        }
-        // Garantir que o CNPJ seja uma string
-        const cnpjStr = String(args.cnpj);
-        result = await consultarCNPJ(cnpjStr);
-        break;
-      }
-
-      case "brasil_ddd": {
-        if (!isDddArgs(args)) {
-          throw new Error("Formato de argumento inválido para brasil_ddd");
-        }
-        // Garantir que o DDD seja uma string
-        const dddStr = String(args.ddd);
-        result = await consultarDDD(dddStr);
-        break;
-      }
-
-      case "brasil_feriados": {
-        if (!isFeriadosArgs(args)) {
-          throw new Error("Formato de argumento inválido para brasil_feriados");
-        }
-        // Garantir que o ano seja uma string
-        const anoStr = String(args.ano);
-        result = await consultarFeriados(anoStr);
-        break;
-      }
-
-      case "brasil_banco": {
-        if (!isBancoArgs(args)) {
-          throw new Error("Formato de argumento inválido para brasil_banco");
-        }
-        // Garantir que o código seja uma string
-        const codigoStr = String(args.codigo);
-        result = await consultarBanco(codigoStr);
-        break;
-      }
-
-      case "brasil_bancos": {
-        result = await listarBancos();
-        break;
-      }
-
-      case "brasil_pix_participantes": {
-        result = await listarPixParticipantes();
-        break;
-      }
-
-      case "brasil_cotacao": {
-        if (!isCotacaoArgs(args)) {
-          throw new Error("Formato de argumento inválido para brasil_cotacao");
-        }
-        result = await consultarCotacao(args.moeda);
-        break;
-      }
-
-      case "brasil_ibge_municipio": {
-        if (!isIbgeMunicipioArgs(args)) {
-          throw new Error("Formato de argumento inválido para brasil_ibge_municipio");
-        }
-        // Garantir que o código IBGE seja uma string
-        const codigoIbgeStr = String(args.codigoIbge);
-        result = await consultarMunicipio(codigoIbgeStr, args.provedores);
-        break;
-      }
-
-      default:
-        throw new Error(`Ferramenta desconhecida: ${name}`);
-    }
-
-    // Retornar o objeto diretamente, não como string JSON
-    return {
-      result: JSON.stringify(result, null, 2),
-      content: [result]
-    };
-  } catch (error) {
-    console.error("Erro ao processar requisição:", error);
-    return {
-      error: {
-        message: error instanceof Error ? error.message : String(error)
-      },
-      content: []
-    };
   }
-});
+);
+
+mcpServer.tool(
+  "brasil_cnpj",
+  "Busca dados cadastrais de empresas brasileiras a partir de um número de CNPJ. Retorna informações como razão social, nome fantasia, situação cadastral, data de abertura, endereço, etc.",
+  cnpjSchema.shape,
+  async ({ cnpj }) => {
+    try {
+      const result = await consultarCNPJ(cnpj);
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
+      };
+    } catch (error) {
+      return {
+        content: [{ type: "text", text: error instanceof Error ? error.message : String(error) }],
+        isError: true
+      };
+    }
+  }
+);
+
+mcpServer.tool(
+  "brasil_ddd",
+  "Retorna todas as cidades brasileiras que possuem o DDD informado.",
+  dddSchema.shape,
+  async ({ ddd }) => {
+    try {
+      const result = await consultarDDD(ddd);
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
+      };
+    } catch (error) {
+      return {
+        content: [{ type: "text", text: error instanceof Error ? error.message : String(error) }],
+        isError: true
+      };
+    }
+  }
+);
+
+mcpServer.tool(
+  "brasil_feriados",
+  "Lista todos os feriados nacionais do Brasil para o ano especificado.",
+  feriadosSchema.shape,
+  async ({ ano }) => {
+    try {
+      const result = await consultarFeriados(ano);
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
+      };
+    } catch (error) {
+      return {
+        content: [{ type: "text", text: error instanceof Error ? error.message : String(error) }],
+        isError: true
+      };
+    }
+  }
+);
+
+mcpServer.tool(
+  "brasil_banco",
+  "Retorna informações de um banco brasileiro a partir do código, nome ou parte do nome do banco.",
+  bancoSchema.shape,
+  async ({ codigo }) => {
+    try {
+      const result = await consultarBanco(codigo);
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
+      };
+    } catch (error) {
+      return {
+        content: [{ type: "text", text: error instanceof Error ? error.message : String(error) }],
+        isError: true
+      };
+    }
+  }
+);
+
+mcpServer.tool(
+  "brasil_bancos",
+  "Lista todos os bancos brasileiros e suas informações.",
+  bancosSchema.shape,
+  async () => {
+    try {
+      const result = await listarBancos();
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
+      };
+    } catch (error) {
+      return {
+        content: [{ type: "text", text: error instanceof Error ? error.message : String(error) }],
+        isError: true
+      };
+    }
+  }
+);
+
+mcpServer.tool(
+  "brasil_pix_participantes",
+  "Lista as instituições participantes do arranjo de pagamentos PIX no Brasil.",
+  pixParticipantesSchema.shape,
+  async () => {
+    try {
+      const result = await listarPixParticipantes();
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
+      };
+    } catch (error) {
+      return {
+        content: [{ type: "text", text: error instanceof Error ? error.message : String(error) }],
+        isError: true
+      };
+    }
+  }
+);
+
+mcpServer.tool(
+  "brasil_cotacao",
+  "Obtém a cotação do dia para moedas como dólar, euro e outras em relação ao real brasileiro.",
+  cotacaoSchema.shape,
+  async ({ moeda }) => {
+    try {
+      const result = await consultarCotacao(moeda);
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
+      };
+    } catch (error) {
+      return {
+        content: [{ type: "text", text: error instanceof Error ? error.message : String(error) }],
+        isError: true
+      };
+    }
+  }
+);
+
+mcpServer.tool(
+  "brasil_ibge_municipio",
+  "Busca municípios brasileiros utilizando o código do IBGE ou filtros de busca.",
+  ibgeMunicipioSchema.shape,
+  async ({ codigoIbge, provedores }) => {
+    try {
+      const result = await consultarMunicipio(codigoIbge, provedores);
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
+      };
+    } catch (error) {
+      return {
+        content: [{ type: "text", text: error instanceof Error ? error.message : String(error) }],
+        isError: true
+      };
+    }
+  }
+);
+
+// Exportar diretamente para uso como biblioteca
+export const BrasilAPI = {
+  consultarCEP,
+  consultarCNPJ,
+  consultarDDD,
+  consultarFeriados,
+  consultarBanco,
+  listarBancos,
+  listarPixParticipantes,
+  consultarCotacao,
+  consultarMunicipio,
+};
 
 // Iniciar o servidor
-async function runServer() {
+async function main() {
   try {
     // Configurar tratamento de sinais para lidar com encerramento adequado
     process.on('SIGINT', () => {
@@ -568,10 +455,9 @@ async function runServer() {
       console.error('Unhandled Rejection at:', promise, 'reason:', reason);
     });
     
+    // Run the server
     const transport = new StdioServerTransport();
-    
-    // Usar connect() de acordo com o exemplo fornecido
-    await server.connect(transport);
+    await mcpServer.connect(transport);
     console.error("Brasil API MCP Server executando através de stdio");
     
     // Manter o processo vivo
@@ -584,20 +470,7 @@ async function runServer() {
   }
 }
 
-// Exportar diretamente para uso como biblioteca
-export const BrasilAPI = {
-  consultarCEP,
-  consultarCNPJ,
-  consultarDDD,
-  consultarFeriados,
-  consultarBanco,
-  listarBancos,
-  listarPixParticipantes,
-  consultarCotacao,
-  consultarMunicipio,
-};
-
-runServer().catch((error) => {
+main().catch((error) => {
   console.error("Error starting server:", error);
   // Don't exit process to allow recovery
   process.exit(1);

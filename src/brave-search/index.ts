@@ -1,82 +1,47 @@
 #!/usr/bin/env node
 
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-  Tool,
-} from "@modelcontextprotocol/sdk/types.js";
+import { z } from "zod";
 
-const WEB_SEARCH_TOOL: Tool = {
-  name: "brave_web_search",
-  description:
-    "Performs a web search using the Brave Search API, ideal for general queries, news, articles, and online content. " +
-    "Use this for broad information gathering, recent events, or when you need diverse web sources. " +
-    "Supports pagination, content filtering, and freshness controls. " +
-    "Maximum 20 results per request, with offset for pagination. ",
-  inputSchema: {
-    type: "object",
-    properties: {
-      query: {
-        type: "string",
-        description: "Search query (max 400 chars, 50 words)"
-      },
-      count: {
-        type: "number",
-        description: "Number of results (1-20, default 10)",
-        default: 10
-      },
-      offset: {
-        type: "number",
-        description: "Pagination offset (max 9, default 0)",
-        default: 0
-      },
-    },
-    required: ["query"],
-  },
-};
+// Esquemas Zod para validação de parâmetros
+const webSearchSchema = z.object({
+  query: z.string()
+    .describe("Search query (max 400 chars, 50 words)"),
+  count: z.number()
+    .int()
+    .min(1)
+    .max(20)
+    .default(10)
+    .describe("Number of results (1-20, default 10)"),
+  offset: z.number()
+    .int()
+    .min(0)
+    .max(9)
+    .default(0)
+    .describe("Pagination offset (max 9, default 0)")
+});
 
-const LOCAL_SEARCH_TOOL: Tool = {
-  name: "brave_local_search",
-  description:
-    "Searches for local businesses and places using Brave's Local Search API. " +
-    "Best for queries related to physical locations, businesses, restaurants, services, etc. " +
-    "Returns detailed information including:\n" +
-    "- Business names and addresses\n" +
-    "- Ratings and review counts\n" +
-    "- Phone numbers and opening hours\n" +
-    "Use this when the query implies 'near me' or mentions specific locations. " +
-    "Automatically falls back to web search if no local results are found.",
-  inputSchema: {
-    type: "object",
-    properties: {
-      query: {
-        type: "string",
-        description: "Local search query (e.g. 'pizza near Central Park')"
-      },
-      count: {
-        type: "number",
-        description: "Number of results (1-20, default 5)",
-        default: 5
-      },
-    },
-    required: ["query"]
-  }
-};
+const localSearchSchema = z.object({
+  query: z.string()
+    .describe("Local search query (e.g. 'pizza near Central Park')"),
+  count: z.number()
+    .int()
+    .min(1)
+    .max(20)
+    .default(5)
+    .describe("Number of results (1-20, default 5)")
+});
 
-// Server implementation
-const server = new Server(
-  {
-    name: "example-servers/brave-search",
-    version: "0.1.0",
+// Create server instance
+const mcpServer = new McpServer({
+  name: "brave-search",
+  version: "0.0.7",
+  capabilities: {
+    resources: {},
+    tools: {},
   },
-  {
-    capabilities: {
-      tools: { listChanged: true },
-    },
-  },
-);
+});
 
 // Check for API key
 const BRAVE_API_KEY = process.env.BRAVE_API_KEY!;
@@ -176,24 +141,6 @@ interface BravePoiResponse {
 
 interface BraveDescription {
   descriptions: {[id: string]: string};
-}
-
-function isBraveWebSearchArgs(args: unknown): args is { query: string; count?: number } {
-  return (
-    typeof args === "object" &&
-    args !== null &&
-    "query" in args &&
-    typeof (args as { query: string }).query === "string"
-  );
-}
-
-function isBraveLocalSearchArgs(args: unknown): args is { query: string; count?: number } {
-  return (
-    typeof args === "object" &&
-    args !== null &&
-    "query" in args &&
-    typeof (args as { query: string }).query === "string"
-  );
 }
 
 async function performWebSearch(query: string, count: number = 10, offset: number = 0): Promise<string> {
@@ -328,58 +275,56 @@ Description: ${descData.descriptions[poi.id] || 'No description available'}
   return formattedResults || 'No local results found';
 }
 
-// Tool handlers
-server.setRequestHandler(ListToolsRequestSchema, async () => ({
-  tools: [WEB_SEARCH_TOOL, LOCAL_SEARCH_TOOL],
-}));
-
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  try {
-    const { name, arguments: args } = request.params;
-
-    if (!args) {
-      throw new Error("No arguments provided");
+// Registrar as ferramentas com o servidor
+mcpServer.tool(
+  "brave_web_search",
+  "Performs a web search using the Brave Search API, ideal for general queries, news, articles, and online content. " +
+  "Use this for broad information gathering, recent events, or when you need diverse web sources. " +
+  "Supports pagination, content filtering, and freshness controls. " +
+  "Maximum 20 results per request, with offset for pagination. ",
+  webSearchSchema.shape,
+  async ({ query, count, offset }) => {
+    try {
+      const result = await performWebSearch(query, count, offset);
+      return {
+        content: [{ type: "text", text: result }]
+      };
+    } catch (error) {
+      return {
+        content: [{ type: "text", text: error instanceof Error ? error.message : String(error) }],
+        isError: true
+      };
     }
-
-    let result = "";
-
-    switch (name) {
-      case "brave_web_search": {
-        if (!isBraveWebSearchArgs(args)) {
-          throw new Error("Invalid arguments for brave_web_search");
-        }
-        const { query, count = 10 } = args;
-        result = await performWebSearch(query, count);
-        break;
-      }
-
-      case "brave_local_search": {
-        if (!isBraveLocalSearchArgs(args)) {
-          throw new Error("Invalid arguments for brave_local_search");
-        }
-        const { query, count = 5 } = args;
-        result = await performLocalSearch(query, count);
-        break;
-      }
-
-      default:
-        throw new Error(`Unknown tool: ${name}`);
-    }
-
-    return {
-      result: result
-    };
-  } catch (error) {
-    console.error("Error processing request:", error);
-    return {
-      error: {
-        message: error instanceof Error ? error.message : String(error)
-      }
-    };
   }
-});
+);
 
-async function runServer() {
+mcpServer.tool(
+  "brave_local_search",
+  "Searches for local businesses and places using Brave's Local Search API. " +
+  "Best for queries related to physical locations, businesses, restaurants, services, etc. " +
+  "Returns detailed information including:\n" +
+  "- Business names and addresses\n" +
+  "- Ratings and review counts\n" +
+  "- Phone numbers and opening hours\n" +
+  "Use this when the query implies 'near me' or mentions specific locations. " +
+  "Automatically falls back to web search if no local results are found.",
+  localSearchSchema.shape,
+  async ({ query, count }) => {
+    try {
+      const result = await performLocalSearch(query, count);
+      return {
+        content: [{ type: "text", text: result }]
+      };
+    } catch (error) {
+      return {
+        content: [{ type: "text", text: error instanceof Error ? error.message : String(error) }],
+        isError: true
+      };
+    }
+  }
+);
+
+async function main() {
   try {
     // Configure signal handling for graceful shutdown
     process.on('SIGINT', () => {
@@ -401,10 +346,9 @@ async function runServer() {
       console.error('Unhandled Rejection at:', promise, 'reason:', reason);
     });
     
+    // Run the server
     const transport = new StdioServerTransport();
-    
-    // Use connect() method to work with the current SDK version
-    await server.connect(transport);
+    await mcpServer.connect(transport);
     console.error("Brave Search MCP Server running on stdio");
     
     // Keep the process alive
@@ -417,7 +361,7 @@ async function runServer() {
   }
 }
 
-runServer().catch((error) => {
+main().catch((error) => {
   console.error("Error starting server:", error);
   // Don't exit process to allow recovery
   process.exit(1);
