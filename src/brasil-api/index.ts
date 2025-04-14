@@ -88,7 +88,7 @@ function checkRateLimit() {
     requestCount.second >= RATE_LIMIT.perSecond ||
     requestCount.minute >= RATE_LIMIT.perMinute
   ) {
-    throw new Error('Taxa limite de requisições excedida. Tente novamente em alguns instantes.');
+    throw new Error('Rate limit exceeded. Please try again in a moment.');
   }
   
   requestCount.second++;
