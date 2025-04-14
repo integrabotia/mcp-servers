@@ -13,6 +13,8 @@ This project is based on the [Model Context Protocol](https://github.com/anthrop
 | MCP Server | Description | NPM Package |
 |------------|-------------|------------|
 | Brave Search | Provides web search and local search capabilities using the Brave Search API | [@integrabot/brave-search](https://www.npmjs.com/package/@integrabot/brave-search) |
+| Brasil API | Provides access to Brazilian public data (CEP, CNPJ, FIPE) including postal codes, business registry, vehicle pricing and more | [@integrabot/brasil-api](https://www.npmjs.com/package/@integrabot/brasil-api) |
+| Slack | Enables interaction with Slack workspaces including listing channels, sending messages, replying to threads, adding reactions, and retrieving user profiles | [@integrabot/slack](https://www.npmjs.com/package/@integrabot/slack) |
 
 ## Development
 
