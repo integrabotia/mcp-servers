@@ -15,19 +15,19 @@ An MCP server that provides access to Ploomes CRM, allowing AI agents to interac
 ## Tools
 
 ### Customers
-- **ploomes_listar_clientes**
+- **ploomes_list_customers**
   - List all customers registered in Ploomes
   - Inputs:
     - `filtro` (string, optional): Filter for specific search
     - `pagina` (number, optional): Page number for pagination
     - `tamanho_pagina` (number, optional): Page size for pagination
     
-- **ploomes_obter_cliente**
+- **ploomes_get_customer**
   - Get details of a specific customer
   - Inputs:
     - `id` (number): Customer ID
 
-- **ploomes_criar_cliente**
+- **ploomes_create_customer**
   - Create a new customer in Ploomes
   - Inputs:
     - `nome` (string): Customer name
@@ -35,7 +35,7 @@ An MCP server that provides access to Ploomes CRM, allowing AI agents to interac
     - `telefone` (string, optional): Customer phone
     - `observacoes` (string, optional): Notes about the customer
 
-- **ploomes_atualizar_cliente**
+- **ploomes_update_customer**
   - Update information of an existing customer
   - Inputs:
     - `id` (number): Customer ID
@@ -45,7 +45,7 @@ An MCP server that provides access to Ploomes CRM, allowing AI agents to interac
     - `observacoes` (string, optional): New notes about the customer
 
 ### Deals
-- **ploomes_listar_negocios**
+- **ploomes_list_deals**
   - List all deals/opportunities
   - Inputs:
     - `filtro` (string, optional): Filter for specific search
@@ -53,12 +53,12 @@ An MCP server that provides access to Ploomes CRM, allowing AI agents to interac
     - `pagina` (number, optional): Page number for pagination
     - `tamanho_pagina` (number, optional): Page size for pagination
 
-- **ploomes_obter_negocio**
+- **ploomes_get_deal**
   - Get details of a specific deal
   - Inputs:
     - `id` (number): Deal ID
 
-- **ploomes_criar_negocio**
+- **ploomes_create_deal**
   - Create a new deal/opportunity
   - Inputs:
     - `titulo` (string): Deal title
@@ -66,7 +66,7 @@ An MCP server that provides access to Ploomes CRM, allowing AI agents to interac
     - `valor` (number, optional): Deal value
     - `estagio_id` (number, optional): Stage ID in the sales funnel
 
-- **ploomes_atualizar_negocio**
+- **ploomes_update_deal**
   - Update an existing deal
   - Inputs:
     - `id` (number): Deal ID
@@ -75,19 +75,19 @@ An MCP server that provides access to Ploomes CRM, allowing AI agents to interac
     - `estagio_id` (number, optional): New stage in the sales funnel
 
 ### Contacts
-- **ploomes_listar_contatos**
+- **ploomes_list_contacts**
   - List all contacts of a customer
   - Inputs:
     - `cliente_id` (number): Customer ID
     - `pagina` (number, optional): Page number for pagination
     - `tamanho_pagina` (number, optional): Page size for pagination
 
-- **ploomes_obter_contato**
+- **ploomes_get_contact**
   - Get details of a specific contact
   - Inputs:
     - `id` (number): Contact ID
 
-- **ploomes_criar_contato**
+- **ploomes_create_contact**
   - Create a new contact for a customer
   - Inputs:
     - `cliente_id` (number): Customer ID
@@ -97,7 +97,7 @@ An MCP server that provides access to Ploomes CRM, allowing AI agents to interac
     - `cargo` (string, optional): Contact role
 
 ### Activities
-- **ploomes_listar_atividades**
+- **ploomes_list_activities**
   - List all activities
   - Inputs:
     - `cliente_id` (number, optional): Filter by specific customer
@@ -105,7 +105,7 @@ An MCP server that provides access to Ploomes CRM, allowing AI agents to interac
     - `pagina` (number, optional): Page number for pagination
     - `tamanho_pagina` (number, optional): Page size for pagination
     
-- **ploomes_criar_atividade**
+- **ploomes_create_activity**
   - Create a new activity
   - Inputs:
     - `titulo` (string): Activity title
