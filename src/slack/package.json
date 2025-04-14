@@ -1,0 +1,30 @@
+{
+  "name": "@integrabot/slack",
+  "version": "0.0.1",
+  "description": "MCP server for Slack integration",
+  "license": "MIT",
+  "author": "integrabotmcp",
+  "homepage": "https://github.com/org/integrabot/slack",
+  "bugs": "https://github.com/org/integrabot/slack/issues",
+  "type": "module",
+  "bin": {
+    "slack": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepare": "npm run build",
+    "watch": "tsc --watch"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.8.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+} 
