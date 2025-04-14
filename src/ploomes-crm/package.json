@@ -1,6 +1,6 @@
 {
   "name": "@integrabot/ploomes-crm",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "MCP server for Ploomes CRM integration",
   "license": "MIT",
   "author": "integrabotmcp",

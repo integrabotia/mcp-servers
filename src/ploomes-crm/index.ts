@@ -4,164 +4,164 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 
-// Esquemas Zod para validação de parâmetros
-const listarClientesSchema = z.object({
-  filtro: z.string().optional()
-    .describe("Filtro para pesquisa específica"),
-  pagina: z.number().optional()
-    .describe("Número da página para paginação"),
-  tamanho_pagina: z.number().optional()
-    .describe("Tamanho da página para paginação")
+// Schemas for parameter validation
+const listCustomersSchema = z.object({
+  filter: z.string().optional()
+    .describe("Filter for specific search"),
+  page: z.number().optional()
+    .describe("Page number for pagination"),
+  page_size: z.number().optional()
+    .describe("Page size for pagination")
 });
 
-const obterClienteSchema = z.object({
+const getCustomerSchema = z.object({
   id: z.number()
-    .describe("ID do cliente")
+    .describe("Customer ID")
 });
 
-const criarClienteSchema = z.object({
-  nome: z.string()
-    .describe("Nome do cliente"),
+const createCustomerSchema = z.object({
+  name: z.string()
+    .describe("Customer name"),
   email: z.string().optional()
-    .describe("Email do cliente"),
-  telefone: z.string().optional()
-    .describe("Telefone do cliente"),
-  observacoes: z.string().optional()
-    .describe("Observações sobre o cliente")
+    .describe("Customer email"),
+  phone: z.string().optional()
+    .describe("Customer phone"),
+  notes: z.string().optional()
+    .describe("Notes about the customer")
 });
 
-const atualizarClienteSchema = z.object({
+const updateCustomerSchema = z.object({
   id: z.number()
-    .describe("ID do cliente"),
-  nome: z.string().optional()
-    .describe("Novo nome do cliente"),
+    .describe("Customer ID"),
+  name: z.string().optional()
+    .describe("New customer name"),
   email: z.string().optional()
-    .describe("Novo email do cliente"),
-  telefone: z.string().optional()
-    .describe("Novo telefone do cliente"),
-  observacoes: z.string().optional()
-    .describe("Novas observações sobre o cliente")
+    .describe("New customer email"),
+  phone: z.string().optional()
+    .describe("New customer phone"),
+  notes: z.string().optional()
+    .describe("New notes about the customer")
 });
 
-const listarNegociosSchema = z.object({
-  filtro: z.string().optional()
-    .describe("Filtro para pesquisa específica"),
-  cliente_id: z.number().optional()
-    .describe("Filtrar por cliente específico"),
-  pagina: z.number().optional()
-    .describe("Número da página para paginação"),
-  tamanho_pagina: z.number().optional()
-    .describe("Tamanho da página para paginação")
+const listDealsSchema = z.object({
+  filter: z.string().optional()
+    .describe("Filter for specific search"),
+  customer_id: z.number().optional()
+    .describe("Filter by specific customer"),
+  page: z.number().optional()
+    .describe("Page number for pagination"),
+  page_size: z.number().optional()
+    .describe("Page size for pagination")
 });
 
-const obterNegocioSchema = z.object({
+const getDealSchema = z.object({
   id: z.number()
-    .describe("ID do negócio")
+    .describe("Deal ID")
 });
 
-const criarNegocioSchema = z.object({
-  titulo: z.string()
-    .describe("Título do negócio"),
-  cliente_id: z.number()
-    .describe("ID do cliente associado"),
-  valor: z.number().optional()
-    .describe("Valor do negócio"),
-  estagio_id: z.number().optional()
-    .describe("ID do estágio no funil de vendas")
+const createDealSchema = z.object({
+  title: z.string()
+    .describe("Deal title"),
+  customer_id: z.number()
+    .describe("Associated customer ID"),
+  amount: z.number().optional()
+    .describe("Deal value"),
+  stage_id: z.number().optional()
+    .describe("Stage ID in the sales funnel")
 });
 
-const atualizarNegocioSchema = z.object({
+const updateDealSchema = z.object({
   id: z.number()
-    .describe("ID do negócio"),
-  titulo: z.string().optional()
-    .describe("Novo título"),
-  valor: z.number().optional()
-    .describe("Novo valor"),
-  estagio_id: z.number().optional()
-    .describe("Novo estágio no funil de vendas")
+    .describe("Deal ID"),
+  title: z.string().optional()
+    .describe("New title"),
+  amount: z.number().optional()
+    .describe("New value"),
+  stage_id: z.number().optional()
+    .describe("New stage in the sales funnel")
 });
 
-const listarContatosSchema = z.object({
-  cliente_id: z.number()
-    .describe("ID do cliente"),
-  pagina: z.number().optional()
-    .describe("Número da página para paginação"),
-  tamanho_pagina: z.number().optional()
-    .describe("Tamanho da página para paginação")
+const listContactsSchema = z.object({
+  customer_id: z.number()
+    .describe("Customer ID"),
+  page: z.number().optional()
+    .describe("Page number for pagination"),
+  page_size: z.number().optional()
+    .describe("Page size for pagination")
 });
 
-const obterContatoSchema = z.object({
+const getContactSchema = z.object({
   id: z.number()
-    .describe("ID do contato")
+    .describe("Contact ID")
 });
 
-const criarContatoSchema = z.object({
-  cliente_id: z.number()
-    .describe("ID do cliente"),
-  nome: z.string()
-    .describe("Nome do contato"),
+const createContactSchema = z.object({
+  customer_id: z.number()
+    .describe("Customer ID"),
+  name: z.string()
+    .describe("Contact name"),
   email: z.string().optional()
-    .describe("Email do contato"),
-  telefone: z.string().optional()
-    .describe("Telefone do contato"),
-  cargo: z.string().optional()
-    .describe("Cargo do contato")
+    .describe("Contact email"),
+  phone: z.string().optional()
+    .describe("Contact phone"),
+  role: z.string().optional()
+    .describe("Contact role")
 });
 
-const listarAtividadesSchema = z.object({
-  cliente_id: z.number().optional()
-    .describe("Filtrar por cliente específico"),
-  negocio_id: z.number().optional()
-    .describe("Filtrar por negócio específico"),
-  pagina: z.number().optional()
-    .describe("Número da página para paginação"),
-  tamanho_pagina: z.number().optional()
-    .describe("Tamanho da página para paginação")
+const listActivitiesSchema = z.object({
+  customer_id: z.number().optional()
+    .describe("Filter by specific customer"),
+  deal_id: z.number().optional()
+    .describe("Filter by specific deal"),
+  page: z.number().optional()
+    .describe("Page number for pagination"),
+  page_size: z.number().optional()
+    .describe("Page size for pagination")
 });
 
-const criarAtividadeSchema = z.object({
-  titulo: z.string()
-    .describe("Título da atividade"),
-  descricao: z.string().optional()
-    .describe("Descrição da atividade"),
-  data_inicio: z.string()
-    .describe("Data de início (formato ISO)"),
-  data_fim: z.string().optional()
-    .describe("Data de término (formato ISO)"),
-  cliente_id: z.number().optional()
-    .describe("ID do cliente associado"),
-  negocio_id: z.number().optional()
-    .describe("ID do negócio associado"),
-  tipo_id: z.number()
-    .describe("ID do tipo de atividade")
+const createActivitySchema = z.object({
+  title: z.string()
+    .describe("Activity title"),
+  description: z.string().optional()
+    .describe("Activity description"),
+  start_date: z.string()
+    .describe("Start date (ISO format)"),
+  end_date: z.string().optional()
+    .describe("End date (ISO format)"),
+  customer_id: z.number().optional()
+    .describe("Associated customer ID"),
+  deal_id: z.number().optional()
+    .describe("Associated deal ID"),
+  type_id: z.number()
+    .describe("Activity type ID")
 });
 
-// Define o tipo para os parâmetros
-type ListarClientesParams = z.infer<typeof listarClientesSchema>;
-type ObterClienteParams = z.infer<typeof obterClienteSchema>;
-type CriarClienteParams = z.infer<typeof criarClienteSchema>;
-type AtualizarClienteParams = z.infer<typeof atualizarClienteSchema>;
-type ListarNegociosParams = z.infer<typeof listarNegociosSchema>;
-type ObterNegocioParams = z.infer<typeof obterNegocioSchema>;
-type CriarNegocioParams = z.infer<typeof criarNegocioSchema>;
-type AtualizarNegocioParams = z.infer<typeof atualizarNegocioSchema>;
-type ListarContatosParams = z.infer<typeof listarContatosSchema>;
-type ObterContatoParams = z.infer<typeof obterContatoSchema>;
-type CriarContatoParams = z.infer<typeof criarContatoSchema>;
-type ListarAtividadesParams = z.infer<typeof listarAtividadesSchema>;
-type CriarAtividadeParams = z.infer<typeof criarAtividadeSchema>;
+// Define types for the parameters
+type ListCustomersParams = z.infer<typeof listCustomersSchema>;
+type GetCustomerParams = z.infer<typeof getCustomerSchema>;
+type CreateCustomerParams = z.infer<typeof createCustomerSchema>;
+type UpdateCustomerParams = z.infer<typeof updateCustomerSchema>;
+type ListDealsParams = z.infer<typeof listDealsSchema>;
+type GetDealParams = z.infer<typeof getDealSchema>;
+type CreateDealParams = z.infer<typeof createDealSchema>;
+type UpdateDealParams = z.infer<typeof updateDealSchema>;
+type ListContactsParams = z.infer<typeof listContactsSchema>;
+type GetContactParams = z.infer<typeof getContactSchema>;
+type CreateContactParams = z.infer<typeof createContactSchema>;
+type ListActivitiesParams = z.infer<typeof listActivitiesSchema>;
+type CreateActivityParams = z.infer<typeof createActivitySchema>;
 
-// Criar instância do servidor
+// Create server instance
 const mcpServer = new McpServer({
   name: "ploomes-crm",
-  version: "0.0.1",
+  version: "0.0.2",
   capabilities: {
     resources: {},
     tools: {},
   },
 });
 
-// Controle de taxa de requisições
+// Rate limit control
 const RATE_LIMIT = {
   perSecond: 5,
   perMinute: 300,
@@ -193,14 +193,14 @@ function checkRateLimit() {
     requestCount.second >= RATE_LIMIT.perSecond ||
     requestCount.minute >= RATE_LIMIT.perMinute
   ) {
-    throw new Error('Taxa limite de requisições excedida. Tente novamente em alguns instantes.');
+    throw new Error('Rate limit exceeded. Please try again in a moment.');
   }
   
   requestCount.second++;
   requestCount.minute++;
 }
 
-// Definir timeout para as requisições à API
+// Define timeout for API requests
 async function fetchWithTimeout(url: string, options: RequestInit = {}, timeout = 30000) {
   const controller = new AbortController();
   const { signal } = controller;
@@ -219,13 +219,13 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}, timeout 
   }
 }
 
-// Obter a chave da API do Ploomes
+// Get the Ploomes API key
 function getApiKey() {
-  // Primeiro, verificar como variável de ambiente
+  // First, check environment variable
   const envApiKey = process.env.PLOOMES_API_KEY;
   if (envApiKey) return envApiKey;
   
-  // Depois, verificar como argumento de linha de comando
+  // Then, check command line arguments
   const args = process.argv.slice(2);
   for (const arg of args) {
     if (arg.startsWith('--api-key=')) {
@@ -233,19 +233,19 @@ function getApiKey() {
     }
   }
   
-  throw new Error('Chave de API do Ploomes não encontrada. Defina a variável de ambiente PLOOMES_API_KEY ou passe o argumento --api-key=sua_chave_api');
+  throw new Error('Ploomes API key not found. Set the PLOOMES_API_KEY environment variable or pass the --api-key=your_api_key argument');
 }
 
-// Implementações de requisições à API
-async function listarClientes(filtro?: string, pagina?: number, tamanho_pagina?: number) {
+// API request implementations
+async function listCustomers(filter?: string, page?: number, page_size?: number) {
   checkRateLimit();
   
   const apiKey = getApiKey();
   const queryParams = new URLSearchParams();
   
-  if (filtro) queryParams.append('$filter', filtro);
-  if (pagina) queryParams.append('$skip', ((pagina - 1) * (tamanho_pagina || 10)).toString());
-  if (tamanho_pagina) queryParams.append('$top', tamanho_pagina.toString());
+  if (filter) queryParams.append('$filter', filter);
+  if (page) queryParams.append('$skip', ((page - 1) * (page_size || 10)).toString());
+  if (page_size) queryParams.append('$top', page_size.toString());
   
   const url = `https://public-api2.ploomes.com/Contacts?${queryParams.toString()}`;
   
@@ -263,7 +263,7 @@ async function listarClientes(filtro?: string, pagina?: number, tamanho_pagina?:
   return await response.json();
 }
 
-async function obterCliente(id: number) {
+async function getCustomer(id: number) {
   checkRateLimit();
   
   const apiKey = getApiKey();
@@ -278,7 +278,7 @@ async function obterCliente(id: number) {
 
   if (!response.ok) {
     if (response.status === 404) {
-      return { erro: "Cliente não encontrado" };
+      return { error: "Customer not found" };
     }
     throw new Error(`API error: ${response.status} ${response.statusText}`);
   }
@@ -286,19 +286,19 @@ async function obterCliente(id: number) {
   return await response.json();
 }
 
-async function criarCliente(nome: string, email?: string, telefone?: string, observacoes?: string) {
+async function createCustomer(name: string, email?: string, phone?: string, notes?: string) {
   checkRateLimit();
   
   const apiKey = getApiKey();
   const url = `https://public-api2.ploomes.com/Contacts`;
   
   const payload: any = {
-    Name: nome
+    Name: name
   };
   
   if (email) payload.Email = email;
-  if (telefone) payload.Phone = telefone;
-  if (observacoes) payload.Notes = observacoes;
+  if (phone) payload.Phone = phone;
+  if (notes) payload.Notes = notes;
   
   const response = await fetchWithTimeout(url, {
     method: 'POST',
@@ -316,7 +316,7 @@ async function criarCliente(nome: string, email?: string, telefone?: string, obs
   return await response.json();
 }
 
-async function atualizarCliente(id: number, nome?: string, email?: string, telefone?: string, observacoes?: string) {
+async function updateCustomer(id: number, name?: string, email?: string, phone?: string, notes?: string) {
   checkRateLimit();
   
   const apiKey = getApiKey();
@@ -324,10 +324,10 @@ async function atualizarCliente(id: number, nome?: string, email?: string, telef
   
   const payload: any = {};
   
-  if (nome) payload.Name = nome;
+  if (name) payload.Name = name;
   if (email) payload.Email = email;
-  if (telefone) payload.Phone = telefone;
-  if (observacoes) payload.Notes = observacoes;
+  if (phone) payload.Phone = phone;
+  if (notes) payload.Notes = notes;
   
   const response = await fetchWithTimeout(url, {
     method: 'PATCH',
@@ -340,24 +340,24 @@ async function atualizarCliente(id: number, nome?: string, email?: string, telef
 
   if (!response.ok) {
     if (response.status === 404) {
-      return { erro: "Cliente não encontrado" };
+      return { error: "Customer not found" };
     }
     throw new Error(`API error: ${response.status} ${response.statusText}`);
   }
 
-  return { mensagem: "Cliente atualizado com sucesso" };
+  return { message: "Customer updated successfully" };
 }
 
-async function listarNegocios(filtro?: string, cliente_id?: number, pagina?: number, tamanho_pagina?: number) {
+async function listDeals(filter?: string, customer_id?: number, page?: number, page_size?: number) {
   checkRateLimit();
   
   const apiKey = getApiKey();
   const queryParams = new URLSearchParams();
   
-  if (filtro) queryParams.append('$filter', filtro);
-  if (cliente_id) queryParams.append('$filter', `ContactId eq ${cliente_id}`);
-  if (pagina) queryParams.append('$skip', ((pagina - 1) * (tamanho_pagina || 10)).toString());
-  if (tamanho_pagina) queryParams.append('$top', tamanho_pagina.toString());
+  if (filter) queryParams.append('$filter', filter);
+  if (customer_id) queryParams.append('$filter', `ContactId eq ${customer_id}`);
+  if (page) queryParams.append('$skip', ((page - 1) * (page_size || 10)).toString());
+  if (page_size) queryParams.append('$top', page_size.toString());
   
   const url = `https://public-api2.ploomes.com/Deals?${queryParams.toString()}`;
   
@@ -375,7 +375,7 @@ async function listarNegocios(filtro?: string, cliente_id?: number, pagina?: num
   return await response.json();
 }
 
-async function obterNegocio(id: number) {
+async function getDeal(id: number) {
   checkRateLimit();
   
   const apiKey = getApiKey();
@@ -390,7 +390,7 @@ async function obterNegocio(id: number) {
 
   if (!response.ok) {
     if (response.status === 404) {
-      return { erro: "Negócio não encontrado" };
+      return { error: "Deal not found" };
     }
     throw new Error(`API error: ${response.status} ${response.statusText}`);
   }
@@ -398,19 +398,19 @@ async function obterNegocio(id: number) {
   return await response.json();
 }
 
-async function criarNegocio(titulo: string, cliente_id: number, valor?: number, estagio_id?: number) {
+async function createDeal(title: string, customer_id: number, amount?: number, stage_id?: number) {
   checkRateLimit();
   
   const apiKey = getApiKey();
   const url = `https://public-api2.ploomes.com/Deals`;
   
   const payload: any = {
-    Title: titulo,
-    ContactId: cliente_id
+    Title: title,
+    ContactId: customer_id
   };
   
-  if (valor) payload.Amount = valor;
-  if (estagio_id) payload.StageId = estagio_id;
+  if (amount) payload.Amount = amount;
+  if (stage_id) payload.StageId = stage_id;
   
   const response = await fetchWithTimeout(url, {
     method: 'POST',
@@ -428,7 +428,7 @@ async function criarNegocio(titulo: string, cliente_id: number, valor?: number, 
   return await response.json();
 }
 
-async function atualizarNegocio(id: number, titulo?: string, valor?: number, estagio_id?: number) {
+async function updateDeal(id: number, title?: string, amount?: number, stage_id?: number) {
   checkRateLimit();
   
   const apiKey = getApiKey();
@@ -436,9 +436,9 @@ async function atualizarNegocio(id: number, titulo?: string, valor?: number, est
   
   const payload: any = {};
   
-  if (titulo) payload.Title = titulo;
-  if (valor) payload.Amount = valor;
-  if (estagio_id) payload.StageId = estagio_id;
+  if (title) payload.Title = title;
+  if (amount) payload.Amount = amount;
+  if (stage_id) payload.StageId = stage_id;
   
   const response = await fetchWithTimeout(url, {
     method: 'PATCH',
@@ -451,23 +451,23 @@ async function atualizarNegocio(id: number, titulo?: string, valor?: number, est
 
   if (!response.ok) {
     if (response.status === 404) {
-      return { erro: "Negócio não encontrado" };
+      return { error: "Deal not found" };
     }
     throw new Error(`API error: ${response.status} ${response.statusText}`);
   }
 
-  return { mensagem: "Negócio atualizado com sucesso" };
+  return { message: "Deal updated successfully" };
 }
 
-async function listarContatos(cliente_id: number, pagina?: number, tamanho_pagina?: number) {
+async function listContacts(customer_id: number, page?: number, page_size?: number) {
   checkRateLimit();
   
   const apiKey = getApiKey();
   const queryParams = new URLSearchParams();
   
-  queryParams.append('$filter', `ContactId eq ${cliente_id}`);
-  if (pagina) queryParams.append('$skip', ((pagina - 1) * (tamanho_pagina || 10)).toString());
-  if (tamanho_pagina) queryParams.append('$top', tamanho_pagina.toString());
+  queryParams.append('$filter', `ContactId eq ${customer_id}`);
+  if (page) queryParams.append('$skip', ((page - 1) * (page_size || 10)).toString());
+  if (page_size) queryParams.append('$top', page_size.toString());
   
   const url = `https://public-api2.ploomes.com/ContactInfos?${queryParams.toString()}`;
   
@@ -485,7 +485,7 @@ async function listarContatos(cliente_id: number, pagina?: number, tamanho_pagin
   return await response.json();
 }
 
-async function obterContato(id: number) {
+async function getContact(id: number) {
   checkRateLimit();
   
   const apiKey = getApiKey();
@@ -500,7 +500,7 @@ async function obterContato(id: number) {
 
   if (!response.ok) {
     if (response.status === 404) {
-      return { erro: "Contato não encontrado" };
+      return { error: "Contact not found" };
     }
     throw new Error(`API error: ${response.status} ${response.statusText}`);
   }
@@ -508,20 +508,20 @@ async function obterContato(id: number) {
   return await response.json();
 }
 
-async function criarContato(cliente_id: number, nome: string, email?: string, telefone?: string, cargo?: string) {
+async function createContact(customer_id: number, name: string, email?: string, phone?: string, role?: string) {
   checkRateLimit();
   
   const apiKey = getApiKey();
   const url = `https://public-api2.ploomes.com/ContactInfos`;
   
   const payload: any = {
-    ContactId: cliente_id,
-    Name: nome
+    ContactId: customer_id,
+    Name: name
   };
   
   if (email) payload.Email = email;
-  if (telefone) payload.Phone = telefone;
-  if (cargo) payload.Role = cargo;
+  if (phone) payload.Phone = phone;
+  if (role) payload.Role = role;
   
   const response = await fetchWithTimeout(url, {
     method: 'POST',
@@ -539,22 +539,22 @@ async function criarContato(cliente_id: number, nome: string, email?: string, te
   return await response.json();
 }
 
-async function listarAtividades(cliente_id?: number, negocio_id?: number, pagina?: number, tamanho_pagina?: number) {
+async function listActivities(customer_id?: number, deal_id?: number, page?: number, page_size?: number) {
   checkRateLimit();
   
   const apiKey = getApiKey();
   const queryParams = new URLSearchParams();
   
   let filters = [];
-  if (cliente_id) filters.push(`ContactId eq ${cliente_id}`);
-  if (negocio_id) filters.push(`DealId eq ${negocio_id}`);
+  if (customer_id) filters.push(`ContactId eq ${customer_id}`);
+  if (deal_id) filters.push(`DealId eq ${deal_id}`);
   
   if (filters.length > 0) {
     queryParams.append('$filter', filters.join(' and '));
   }
   
-  if (pagina) queryParams.append('$skip', ((pagina - 1) * (tamanho_pagina || 10)).toString());
-  if (tamanho_pagina) queryParams.append('$top', tamanho_pagina.toString());
+  if (page) queryParams.append('$skip', ((page - 1) * (page_size || 10)).toString());
+  if (page_size) queryParams.append('$top', page_size.toString());
   
   const url = `https://public-api2.ploomes.com/Activities?${queryParams.toString()}`;
   
@@ -572,22 +572,22 @@ async function listarAtividades(cliente_id?: number, negocio_id?: number, pagina
   return await response.json();
 }
 
-async function criarAtividade(titulo: string, data_inicio: string, tipo_id: number, descricao?: string, data_fim?: string, cliente_id?: number, negocio_id?: number) {
+async function createActivity(title: string, start_date: string, type_id: number, description?: string, end_date?: string, customer_id?: number, deal_id?: number) {
   checkRateLimit();
   
   const apiKey = getApiKey();
   const url = `https://public-api2.ploomes.com/Activities`;
   
   const payload: any = {
-    Title: titulo,
-    StartDate: data_inicio,
-    ActivityTypeId: tipo_id
+    Title: title,
+    StartDate: start_date,
+    ActivityTypeId: type_id
   };
   
-  if (descricao) payload.Description = descricao;
-  if (data_fim) payload.EndDate = data_fim;
-  if (cliente_id) payload.ContactId = cliente_id;
-  if (negocio_id) payload.DealId = negocio_id;
+  if (description) payload.Description = description;
+  if (end_date) payload.EndDate = end_date;
+  if (customer_id) payload.ContactId = customer_id;
+  if (deal_id) payload.DealId = deal_id;
   
   const response = await fetchWithTimeout(url, {
     method: 'POST',
@@ -605,14 +605,14 @@ async function criarAtividade(titulo: string, data_inicio: string, tipo_id: numb
   return await response.json();
 }
 
-// Registrar as ferramentas com o servidor
+// Register tools with the server
 mcpServer.tool(
-  "ploomes_listar_clientes",
-  "Lista todos os clientes cadastrados no Ploomes CRM, permitindo filtrar e paginar os resultados.",
-  listarClientesSchema.shape,
-  async ({ filtro, pagina, tamanho_pagina }: ListarClientesParams) => {
+  "ploomes_list_customers",
+  "Lists all customers registered in Ploomes CRM, allowing filtering and pagination of results.",
+  listCustomersSchema.shape,
+  async ({ filter, page, page_size }: ListCustomersParams) => {
     try {
-      const result = await listarClientes(filtro, pagina, tamanho_pagina);
+      const result = await listCustomers(filter, page, page_size);
       return {
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
       };
@@ -626,12 +626,12 @@ mcpServer.tool(
 );
 
 mcpServer.tool(
-  "ploomes_obter_cliente",
-  "Obtém detalhes de um cliente específico do Ploomes CRM a partir do seu ID.",
-  obterClienteSchema.shape,
-  async ({ id }: ObterClienteParams) => {
+  "ploomes_get_customer",
+  "Gets details of a specific customer from Ploomes CRM using their ID.",
+  getCustomerSchema.shape,
+  async ({ id }: GetCustomerParams) => {
     try {
-      const result = await obterCliente(id);
+      const result = await getCustomer(id);
       return {
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
       };
@@ -645,12 +645,12 @@ mcpServer.tool(
 );
 
 mcpServer.tool(
-  "ploomes_criar_cliente",
-  "Cria um novo cliente no Ploomes CRM com as informações fornecidas.",
-  criarClienteSchema.shape,
-  async ({ nome, email, telefone, observacoes }: CriarClienteParams) => {
+  "ploomes_create_customer",
+  "Creates a new customer in Ploomes CRM with the provided information.",
+  createCustomerSchema.shape,
+  async ({ name, email, phone, notes }: CreateCustomerParams) => {
     try {
-      const result = await criarCliente(nome, email, telefone, observacoes);
+      const result = await createCustomer(name, email, phone, notes);
       return {
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
       };
@@ -664,12 +664,12 @@ mcpServer.tool(
 );
 
 mcpServer.tool(
-  "ploomes_atualizar_cliente",
-  "Atualiza informações de um cliente existente no Ploomes CRM.",
-  atualizarClienteSchema.shape,
-  async ({ id, nome, email, telefone, observacoes }: AtualizarClienteParams) => {
+  "ploomes_update_customer",
+  "Updates information of an existing customer in Ploomes CRM.",
+  updateCustomerSchema.shape,
+  async ({ id, name, email, phone, notes }: UpdateCustomerParams) => {
     try {
-      const result = await atualizarCliente(id, nome, email, telefone, observacoes);
+      const result = await updateCustomer(id, name, email, phone, notes);
       return {
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
       };
@@ -683,12 +683,12 @@ mcpServer.tool(
 );
 
 mcpServer.tool(
-  "ploomes_listar_negocios",
-  "Lista todos os negócios/oportunidades no Ploomes CRM, permitindo filtrar e paginar os resultados.",
-  listarNegociosSchema.shape,
-  async ({ filtro, cliente_id, pagina, tamanho_pagina }: ListarNegociosParams) => {
+  "ploomes_list_deals",
+  "Lists all deals/opportunities in Ploomes CRM, allowing filtering and pagination of results.",
+  listDealsSchema.shape,
+  async ({ filter, customer_id, page, page_size }: ListDealsParams) => {
     try {
-      const result = await listarNegocios(filtro, cliente_id, pagina, tamanho_pagina);
+      const result = await listDeals(filter, customer_id, page, page_size);
       return {
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
       };
@@ -702,12 +702,12 @@ mcpServer.tool(
 );
 
 mcpServer.tool(
-  "ploomes_obter_negocio",
-  "Obtém detalhes de um negócio específico do Ploomes CRM a partir do seu ID.",
-  obterNegocioSchema.shape,
-  async ({ id }: ObterNegocioParams) => {
+  "ploomes_get_deal",
+  "Gets details of a specific deal from Ploomes CRM using its ID.",
+  getDealSchema.shape,
+  async ({ id }: GetDealParams) => {
     try {
-      const result = await obterNegocio(id);
+      const result = await getDeal(id);
       return {
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
       };
@@ -721,12 +721,12 @@ mcpServer.tool(
 );
 
 mcpServer.tool(
-  "ploomes_criar_negocio",
-  "Cria um novo negócio/oportunidade no Ploomes CRM com as informações fornecidas.",
-  criarNegocioSchema.shape,
-  async ({ titulo, cliente_id, valor, estagio_id }: CriarNegocioParams) => {
+  "ploomes_create_deal",
+  "Creates a new deal/opportunity in Ploomes CRM with the provided information.",
+  createDealSchema.shape,
+  async ({ title, customer_id, amount, stage_id }: CreateDealParams) => {
     try {
-      const result = await criarNegocio(titulo, cliente_id, valor, estagio_id);
+      const result = await createDeal(title, customer_id, amount, stage_id);
       return {
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
       };
@@ -740,12 +740,12 @@ mcpServer.tool(
 );
 
 mcpServer.tool(
-  "ploomes_atualizar_negocio",
-  "Atualiza informações de um negócio existente no Ploomes CRM.",
-  atualizarNegocioSchema.shape,
-  async ({ id, titulo, valor, estagio_id }: AtualizarNegocioParams) => {
+  "ploomes_update_deal",
+  "Updates information of an existing deal in Ploomes CRM.",
+  updateDealSchema.shape,
+  async ({ id, title, amount, stage_id }: UpdateDealParams) => {
     try {
-      const result = await atualizarNegocio(id, titulo, valor, estagio_id);
+      const result = await updateDeal(id, title, amount, stage_id);
       return {
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
       };
@@ -759,12 +759,12 @@ mcpServer.tool(
 );
 
 mcpServer.tool(
-  "ploomes_listar_contatos",
-  "Lista todos os contatos de um cliente no Ploomes CRM, permitindo paginar os resultados.",
-  listarContatosSchema.shape,
-  async ({ cliente_id, pagina, tamanho_pagina }: ListarContatosParams) => {
+  "ploomes_list_contacts",
+  "Lists all contacts of a customer in Ploomes CRM, allowing pagination of results.",
+  listContactsSchema.shape,
+  async ({ customer_id, page, page_size }: ListContactsParams) => {
     try {
-      const result = await listarContatos(cliente_id, pagina, tamanho_pagina);
+      const result = await listContacts(customer_id, page, page_size);
       return {
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
       };
@@ -778,12 +778,12 @@ mcpServer.tool(
 );
 
 mcpServer.tool(
-  "ploomes_obter_contato",
-  "Obtém detalhes de um contato específico do Ploomes CRM a partir do seu ID.",
-  obterContatoSchema.shape,
-  async ({ id }: ObterContatoParams) => {
+  "ploomes_get_contact",
+  "Gets details of a specific contact from Ploomes CRM using its ID.",
+  getContactSchema.shape,
+  async ({ id }: GetContactParams) => {
     try {
-      const result = await obterContato(id);
+      const result = await getContact(id);
       return {
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
       };
@@ -797,12 +797,12 @@ mcpServer.tool(
 );
 
 mcpServer.tool(
-  "ploomes_criar_contato",
-  "Cria um novo contato para um cliente no Ploomes CRM com as informações fornecidas.",
-  criarContatoSchema.shape,
-  async ({ cliente_id, nome, email, telefone, cargo }: CriarContatoParams) => {
+  "ploomes_create_contact",
+  "Creates a new contact for a customer in Ploomes CRM with the provided information.",
+  createContactSchema.shape,
+  async ({ customer_id, name, email, phone, role }: CreateContactParams) => {
     try {
-      const result = await criarContato(cliente_id, nome, email, telefone, cargo);
+      const result = await createContact(customer_id, name, email, phone, role);
       return {
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
       };
@@ -816,12 +816,12 @@ mcpServer.tool(
 );
 
 mcpServer.tool(
-  "ploomes_listar_atividades",
-  "Lista todas as atividades no Ploomes CRM, permitindo filtrar por cliente ou negócio e paginar os resultados.",
-  listarAtividadesSchema.shape,
-  async ({ cliente_id, negocio_id, pagina, tamanho_pagina }: ListarAtividadesParams) => {
+  "ploomes_list_activities",
+  "Lists all activities in Ploomes CRM, allowing filtering by customer or deal and pagination of results.",
+  listActivitiesSchema.shape,
+  async ({ customer_id, deal_id, page, page_size }: ListActivitiesParams) => {
     try {
-      const result = await listarAtividades(cliente_id, negocio_id, pagina, tamanho_pagina);
+      const result = await listActivities(customer_id, deal_id, page, page_size);
       return {
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
       };
@@ -835,12 +835,12 @@ mcpServer.tool(
 );
 
 mcpServer.tool(
-  "ploomes_criar_atividade",
-  "Cria uma nova atividade no Ploomes CRM com as informações fornecidas.",
-  criarAtividadeSchema.shape,
-  async ({ titulo, descricao, data_inicio, data_fim, cliente_id, negocio_id, tipo_id }: CriarAtividadeParams) => {
+  "ploomes_create_activity",
+  "Creates a new activity in Ploomes CRM with the provided information.",
+  createActivitySchema.shape,
+  async ({ title, description, start_date, end_date, customer_id, deal_id, type_id }: CreateActivityParams) => {
     try {
-      const result = await criarAtividade(titulo, data_inicio, tipo_id, descricao, data_fim, cliente_id, negocio_id);
+      const result = await createActivity(title, start_date, type_id, description, end_date, customer_id, deal_id);
       return {
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
       };
@@ -853,24 +853,24 @@ mcpServer.tool(
   }
 );
 
-// Função principal
+// Main function
 async function main() {
   try {
-    // Tentar obter chave da API para validar configuração
+    // Try to get the API key to validate configuration
     getApiKey();
     
-    // Configurar tratamento de sinais para lidar com encerramento adequado
+    // Configure signal handling for proper shutdown
     process.on('SIGINT', () => {
-      console.error('Servidor Ploomes CRM recebeu SIGINT, encerrando...');
+      console.error('Ploomes CRM Server received SIGINT, shutting down...');
       process.exit(0);
     });
     
     process.on('SIGTERM', () => {
-      console.error('Servidor Ploomes CRM recebeu SIGTERM, encerrando...');
+      console.error('Ploomes CRM Server received SIGTERM, shutting down...');
       process.exit(0);
     });
     
-    // Garantir que os erros não encerrem o processo
+    // Ensure errors don't terminate the process
     process.on('uncaughtException', (error) => {
       console.error('Uncaught exception:', error);
     });
@@ -882,19 +882,19 @@ async function main() {
     // Run the server
     const transport = new StdioServerTransport();
     await mcpServer.connect(transport);
-    console.error("Ploomes CRM MCP Server executando através de stdio");
+    console.error("Ploomes CRM MCP Server running through stdio");
     
-    // Manter o processo vivo
+    // Keep the process alive
     setInterval(() => {
-      // Heartbeat para manter o processo ativo
+      // Heartbeat to keep the process active
     }, 10000);
   } catch (error) {
-    console.error("Erro ao iniciar o servidor MCP:", error);
+    console.error("Error starting MCP server:", error);
     process.exit(1);
   }
 }
 
-// Iniciar o servidor
+// Start the server
 main().catch((error) => {
     console.error("Error starting server:", error);
     // Don't exit process to allow recovery
