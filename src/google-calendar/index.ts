@@ -432,7 +432,7 @@ async function withTimeout<T>(
 // Criar instância do servidor
 const mcpServer = new McpServer({
   name: "Google Calendar",
-  version: "0.0.1",
+  version: "0.0.2",
   description: "MCP server for Google Calendar integration",
   capabilities: {
     resources: {},
