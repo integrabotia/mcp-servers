@@ -1,0 +1,31 @@
+{
+  "name": "@integrabot/google-calendar",
+  "version": "0.0.8",
+  "description": "MCP server for Google Calendar integration",
+  "license": "MIT",
+  "author": "integrabotmcp",
+  "homepage": "https://github.com/org/integrabot/google-calendar",
+  "bugs": "https://github.com/org/integrabot/google-calendar/issues",
+  "type": "module",
+  "bin": {
+    "google-calendar": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepare": "npm run build",
+    "watch": "tsc --watch"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.8.0",
+    "zod": "^3.24.2",
+    "googleapis": "^133.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+} 
