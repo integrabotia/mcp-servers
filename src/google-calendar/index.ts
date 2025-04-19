@@ -142,7 +142,12 @@ interface Credentials {
   access_token: string;
   refresh_token: string;
   token_type: string;
-  expiry_date: number;
+  expires_at: number;
+  additional_data?: {
+    id_token?: string;
+    email?: string;
+    credentials_id?: string;
+  };
 }
 
 class GoogleCalendarClient {
@@ -153,29 +158,60 @@ class GoogleCalendarClient {
       try {
         const credentials: Credentials = JSON.parse(process.env.CREDENTIALS);
         
+        // Validar as credenciais para evitar erro "invalid_request"
+        if (!credentials.refresh_token && !credentials.additional_data?.id_token) {
+          throw new Error('refresh_token ou id_token ausente nas credenciais');
+        }
+        
         const oauth2Client = new google.auth.OAuth2();
-        oauth2Client.setCredentials({
-          access_token: credentials.access_token,
-          refresh_token: credentials.refresh_token,
+        
+        // Configurar credenciais usando refresh_token ou id_token
+        const authCredentials: any = {
           token_type: credentials.token_type,
-          expiry_date: credentials.expiry_date
-        });
+          expiry_date: credentials.expires_at
+        };
+        
+        if (credentials.access_token) {
+          authCredentials.access_token = credentials.access_token;
+        }
+        
+        if (credentials.refresh_token) {
+          authCredentials.refresh_token = credentials.refresh_token;
+        }
+        
+        // Usar id_token se disponível
+        if (credentials.additional_data?.id_token) {
+          authCredentials.id_token = credentials.additional_data.id_token;
+        }
+        
+        oauth2Client.setCredentials(authCredentials);
         
         this.calendar = google.calendar({ version: 'v3', auth: oauth2Client });
       } catch (error) {
-        console.error('Error parsing CREDENTIALS environment variable:', error);
-        throw new Error('Invalid CREDENTIALS format');
+        console.error('Erro ao analisar variável de ambiente CREDENTIALS:', error);
+        throw new Error('Formato de CREDENTIALS inválido ou incompleto');
       }
     } else {
+      // Validar as credenciais para evitar erro "invalid_request"
+      if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+        throw new Error(
+          'Variáveis de ambiente necessárias não definidas. Configure CREDENTIALS ' +
+          'ou configure GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET.'
+        );
+      }
+      
       const oauth2Client = new google.auth.OAuth2(
         process.env.GOOGLE_CLIENT_ID,
         process.env.GOOGLE_CLIENT_SECRET,
-        process.env.GOOGLE_REDIRECT_URI
+        process.env.GOOGLE_REDIRECT_URI || 'urn:ietf:wg:oauth:2.0:oob'
       );
       
-      oauth2Client.setCredentials({
-        refresh_token: process.env.GOOGLE_REFRESH_TOKEN
-      });
+      // Definir credenciais sem depender de GOOGLE_REFRESH_TOKEN
+      if (process.env.GOOGLE_REFRESH_TOKEN) {
+        oauth2Client.setCredentials({
+          refresh_token: process.env.GOOGLE_REFRESH_TOKEN
+        });
+      }
       
       this.calendar = google.calendar({ version: 'v3', auth: oauth2Client });
     }
@@ -190,7 +226,18 @@ class GoogleCalendarClient {
       
       return response.data;
     } catch (error) {
-      console.error('Error listing calendars:', error);
+      console.error('Erro ao listar calendários:', error);
+      
+      // Adicionar informações específicas para erros de autenticação
+      if (error instanceof Error) {
+        const errorMessage = error.message || '';
+        if (errorMessage.includes('invalid_request') || 
+            errorMessage.includes('invalid_client') || 
+            errorMessage.includes('invalid_grant')) {
+          throw new Error(`Erro de autenticação com Google Calendar: ${errorMessage}. Verifique se as credenciais estão corretas e válidas.`);
+        }
+      }
+      
       throw error;
     }
   }
@@ -370,17 +417,21 @@ class GoogleCalendarClient {
 }
 
 function getGoogleCalendarClient(): GoogleCalendarClient {
-  if (!process.env.CREDENTIALS && 
-      (!process.env.GOOGLE_CLIENT_ID || 
-       !process.env.GOOGLE_CLIENT_SECRET || 
-       !process.env.GOOGLE_REFRESH_TOKEN)) {
-    throw new Error(
-      'Missing required environment variables. Either set CREDENTIALS ' +
-      'or set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REFRESH_TOKEN.'
-    );
+  try {
+    if (!process.env.CREDENTIALS && 
+        (!process.env.GOOGLE_CLIENT_ID || 
+         !process.env.GOOGLE_CLIENT_SECRET)) {
+      throw new Error(
+        'Variáveis de ambiente necessárias não encontradas. Configure CREDENTIALS ' +
+        'ou configure GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET.'
+      );
+    }
+    
+    return new GoogleCalendarClient();
+  } catch (error) {
+    console.error('Erro ao criar cliente do Google Calendar:', error);
+    throw error;
   }
-  
-  return new GoogleCalendarClient();
 }
 
 const requestCounts: { [key: string]: number } = {};
@@ -432,7 +483,7 @@ async function withTimeout<T>(
 // Criar instância do servidor
 const mcpServer = new McpServer({
   name: "Google Calendar",
-  version: "0.0.2",
+  version: "0.0.3",
   description: "MCP server for Google Calendar integration",
   capabilities: {
     resources: {},
