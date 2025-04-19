@@ -142,7 +142,7 @@ interface Credentials {
   access_token: string;
   refresh_token: string;
   token_type: string;
-  expires_at: number;
+  expires_at: string | number;
   additional_data?: {
     id_token?: string;
     email?: string;
@@ -167,9 +167,18 @@ class GoogleCalendarClient {
         
         // Configurar credenciais usando refresh_token ou id_token
         const authCredentials: any = {
-          token_type: credentials.token_type,
-          expiry_date: credentials.expires_at
+          token_type: credentials.token_type
         };
+        
+        // Converter expires_at para expiry_date (timestamp em milissegundos)
+        if (credentials.expires_at) {
+          // Se expires_at for uma string ISO, converta para timestamp
+          if (typeof credentials.expires_at === 'string') {
+            authCredentials.expiry_date = new Date(credentials.expires_at).getTime();
+          } else {
+            authCredentials.expiry_date = credentials.expires_at;
+          }
+        }
         
         if (credentials.access_token) {
           authCredentials.access_token = credentials.access_token;
@@ -689,6 +698,27 @@ mcpServer.tool(
     try {
       if (!checkRateLimit('find_availability')) {
         throw new Error('Rate limit exceeded for find_availability');
+      }
+      
+      // Garantir que calendarIds seja um array
+      if (!Array.isArray(params.calendarIds)) {
+        // Se for string vazia, criar array vazio
+        if (params.calendarIds === "") {
+          params.calendarIds = [];
+        } 
+        // Se for string única, converter para array com um elemento
+        else if (typeof params.calendarIds === 'string') {
+          params.calendarIds = [params.calendarIds];
+        }
+        // Caso contrário, inicializar como array vazio
+        else {
+          params.calendarIds = [];
+        }
+      }
+      
+      // Verificar se há pelo menos um calendário
+      if (params.calendarIds.length === 0) {
+        throw new Error('É necessário fornecer pelo menos um ID de calendário no parâmetro calendarIds');
       }
       
       const client = getGoogleCalendarClient();
