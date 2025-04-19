@@ -46,23 +46,51 @@ const createEventSchema = z.object({
     .describe("The title of the event"),
   description: z.string().optional()
     .describe("Description of the event"),
-  start: z.object({
-    date: z.string().optional(),
-    dateTime: z.string().optional(),
-    timeZone: z.string().optional()
+  start: z.union([
+    z.string(),
+    z.object({
+      date: z.string().optional(),
+      dateTime: z.string().optional(),
+      timeZone: z.string().optional()
+    })
+  ]).transform(value => {
+    // Converter string para objeto com dateTime
+    if (typeof value === 'string') {
+      return { dateTime: value };
+    }
+    return value;
   }).describe("Start time information with either date or dateTime"),
-  end: z.object({
-    date: z.string().optional(),
-    dateTime: z.string().optional(),
-    timeZone: z.string().optional()
+  end: z.union([
+    z.string(),
+    z.object({
+      date: z.string().optional(),
+      dateTime: z.string().optional(),
+      timeZone: z.string().optional()
+    })
+  ]).transform(value => {
+    // Converter string para objeto com dateTime
+    if (typeof value === 'string') {
+      return { dateTime: value };
+    }
+    return value;
   }).describe("End time information with either date or dateTime"),
   location: z.string().optional()
     .describe("Location of the event"),
-  attendees: z.array(z.object({
-    email: z.string(),
-    responseStatus: z.string().optional()
-  })).optional().describe("List of attendees with email and optional response status"),
-  recurrence: z.array(z.string()).optional()
+  attendees: z.union([
+    z.array(z.string()),
+    z.array(z.object({
+      email: z.string(),
+      responseStatus: z.string().optional()
+    }))
+  ]).transform(value => {
+    // Converter array de strings para array de objetos com email
+    if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string') {
+      return value.map(email => ({ email }));
+    }
+    return value;
+  }).optional().describe("List of attendees with email and optional response status"),
+  recurrence: z.array(z.string()).optional().nullable()
+    .transform(value => value === null ? undefined : value)
     .describe("Recurrence rules for recurring events"),
   reminders: z.object({
     useDefault: z.boolean().optional(),
@@ -123,8 +151,18 @@ const findAvailabilitySchema = z.object({
     .describe("End of the time range in ISO format"),
   durationMinutes: z.number()
     .describe("Desired duration of the event in minutes"),
-  calendarIds: z.array(z.string())
-    .describe("List of calendar IDs to check"),
+  calendarIds: z.union([
+    z.string(),
+    z.array(z.string())
+  ]).transform(value => {
+    // Converter string para array
+    if (typeof value === 'string') {
+      if (value === '') return [];
+      return [value];
+    }
+    return value;
+  })
+    .describe("List of calendar IDs to check (string or array)"),
   timeZone: z.string().optional().default('UTC')
     .describe("Time zone for the search (default UTC)")
 });
@@ -152,6 +190,8 @@ interface Credentials {
 
 class GoogleCalendarClient {
   private calendar: calendar_v3.Calendar;
+  private oauth2Client: any;
+  private userEmail: string | undefined;
 
   constructor() {
     if (process.env.CREDENTIALS) {
@@ -163,7 +203,12 @@ class GoogleCalendarClient {
           throw new Error('refresh_token ou id_token ausente nas credenciais');
         }
         
-        const oauth2Client = new google.auth.OAuth2();
+        this.oauth2Client = new google.auth.OAuth2();
+        
+        // Salvar o email do usuário se disponível
+        if (credentials.additional_data?.email) {
+          this.userEmail = credentials.additional_data.email;
+        }
         
         // Configurar credenciais usando refresh_token ou id_token
         const authCredentials: any = {
@@ -193,9 +238,9 @@ class GoogleCalendarClient {
           authCredentials.id_token = credentials.additional_data.id_token;
         }
         
-        oauth2Client.setCredentials(authCredentials);
+        this.oauth2Client.setCredentials(authCredentials);
         
-        this.calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+        this.calendar = google.calendar({ version: 'v3', auth: this.oauth2Client });
       } catch (error) {
         console.error('Erro ao analisar variável de ambiente CREDENTIALS:', error);
         throw new Error('Formato de CREDENTIALS inválido ou incompleto');
@@ -209,7 +254,7 @@ class GoogleCalendarClient {
         );
       }
       
-      const oauth2Client = new google.auth.OAuth2(
+      this.oauth2Client = new google.auth.OAuth2(
         process.env.GOOGLE_CLIENT_ID,
         process.env.GOOGLE_CLIENT_SECRET,
         process.env.GOOGLE_REDIRECT_URI || 'urn:ietf:wg:oauth:2.0:oob'
@@ -217,17 +262,51 @@ class GoogleCalendarClient {
       
       // Definir credenciais sem depender de GOOGLE_REFRESH_TOKEN
       if (process.env.GOOGLE_REFRESH_TOKEN) {
-        oauth2Client.setCredentials({
+        this.oauth2Client.setCredentials({
           refresh_token: process.env.GOOGLE_REFRESH_TOKEN
         });
       }
       
-      this.calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+      this.calendar = google.calendar({ version: 'v3', auth: this.oauth2Client });
+    }
+  }
+
+  // Função para tentar renovar o token se estiver expirado
+  private async ensureValidToken(): Promise<void> {
+    try {
+      // Verificar se o token está próximo de expirar (ou já expirou)
+      const credentials = this.oauth2Client.credentials || {};
+      const now = Date.now();
+      const expiryDate = credentials.expiry_date || 0;
+      
+      // Se não houver data de expiração, ou se o token expirar em menos de 5 minutos
+      if (!expiryDate || expiryDate - now < 5 * 60 * 1000) {
+        console.log('Token está expirado ou próximo de expirar, renovando...');
+        await this.oauth2Client.refreshAccessToken();
+        console.log('Token renovado com sucesso');
+      }
+    } catch (error) {
+      console.error('Erro ao renovar token:', error);
+      throw new Error(`Erro ao renovar o token de acesso: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  // Função para forçar renovação do token em caso de erro
+  private async forceTokenRefresh(): Promise<void> {
+    try {
+      console.log('Forçando renovação do token...');
+      await this.oauth2Client.refreshAccessToken();
+      console.log('Token renovado com sucesso após forçar renovação');
+    } catch (error) {
+      console.error('Erro ao forçar renovação do token:', error);
+      throw new Error(`Não foi possível renovar o token mesmo após tentativa forçada: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
   async listCalendars(maxResults: number = 100, pageToken?: string): Promise<calendar_v3.Schema$CalendarList> {
     try {
+      await this.ensureValidToken();
+      
       const response = await this.calendar.calendarList.list({
         maxResults,
         pageToken: pageToken || undefined
@@ -237,9 +316,28 @@ class GoogleCalendarClient {
     } catch (error) {
       console.error('Erro ao listar calendários:', error);
       
-      // Adicionar informações específicas para erros de autenticação
+      // Tentar renovar o token forçadamente em caso de erro de autenticação
       if (error instanceof Error) {
         const errorMessage = error.message || '';
+        if (errorMessage.includes('Invalid Credentials') || 
+            errorMessage.includes('invalid_token')) {
+          
+          try {
+            console.log('Detectado erro de credenciais inválidas, tentando renovar token...');
+            await this.forceTokenRefresh();
+            
+            // Tentar novamente após renovar o token
+            const response = await this.calendar.calendarList.list({
+              maxResults,
+              pageToken: pageToken || undefined
+            });
+            
+            return response.data;
+          } catch (refreshError) {
+            throw new Error(`Token inválido e não foi possível renová-lo: ${refreshError instanceof Error ? refreshError.message : String(refreshError)}`);
+          }
+        }
+        
         if (errorMessage.includes('invalid_request') || 
             errorMessage.includes('invalid_client') || 
             errorMessage.includes('invalid_grant')) {
@@ -253,19 +351,23 @@ class GoogleCalendarClient {
 
   async getCalendar(calendarId: string): Promise<calendar_v3.Schema$Calendar> {
     try {
+      await this.ensureValidToken();
+      
       const response = await this.calendar.calendars.get({
         calendarId
       });
       
       return response.data;
     } catch (error) {
-      console.error(`Error getting calendar ${calendarId}:`, error);
+      console.error(`Erro ao obter calendário ${calendarId}:`, error);
       throw error;
     }
   }
 
   async listEvents(params: ListEventsParams): Promise<calendar_v3.Schema$Events> {
     try {
+      await this.ensureValidToken();
+      
       const response = await this.calendar.events.list({
         calendarId: params.calendarId,
         timeMin: params.timeMin,
@@ -277,13 +379,15 @@ class GoogleCalendarClient {
       
       return response.data;
     } catch (error) {
-      console.error('Error listing events:', error);
+      console.error('Erro ao listar eventos:', error);
       throw error;
     }
   }
 
   async getEvent(calendarId: string, eventId: string): Promise<calendar_v3.Schema$Event> {
     try {
+      await this.ensureValidToken();
+      
       const response = await this.calendar.events.get({
         calendarId,
         eventId
@@ -291,36 +395,90 @@ class GoogleCalendarClient {
       
       return response.data;
     } catch (error) {
-      console.error(`Error getting event ${eventId}:`, error);
+      console.error(`Erro ao obter evento ${eventId}:`, error);
       throw error;
     }
   }
 
   async createEvent(params: CreateEventParams): Promise<calendar_v3.Schema$Event> {
     try {
+      await this.ensureValidToken();
+      
+      // Garantir que temos objetos válidos para start e end
+      const requestBody: any = {
+        summary: params.summary,
+        description: params.description,
+        location: params.location,
+        recurrence: params.recurrence,
+        reminders: params.reminders
+      };
+      
+      // Usar os valores de start e end já transformados pelo schema Zod
+      if (params.start) {
+        requestBody.start = params.start;
+      }
+      
+      if (params.end) {
+        requestBody.end = params.end;
+      }
+      
+      // Usar os valores de attendees já transformados pelo schema Zod
+      if (params.attendees) {
+        requestBody.attendees = params.attendees;
+      }
+      
       const response = await this.calendar.events.insert({
         calendarId: params.calendarId,
-        requestBody: {
-          summary: params.summary,
-          description: params.description,
-          location: params.location,
-          start: params.start,
-          end: params.end,
-          attendees: params.attendees,
-          recurrence: params.recurrence,
-          reminders: params.reminders
-        }
+        requestBody
       });
       
       return response.data;
     } catch (error) {
-      console.error('Error creating event:', error);
+      console.error('Erro ao criar evento:', error);
+      
+      // Tentar renovar o token forçadamente em caso de erro de autenticação
+      if (error instanceof Error) {
+        const errorMessage = error.message || '';
+        if (errorMessage.includes('Invalid Credentials') || 
+            errorMessage.includes('invalid_token')) {
+          
+          try {
+            console.log('Detectado erro de credenciais inválidas, tentando renovar token...');
+            await this.forceTokenRefresh();
+            
+            // Preparar o corpo da requisição novamente
+            const requestBody: any = {
+              summary: params.summary,
+              description: params.description,
+              location: params.location,
+              start: params.start,
+              end: params.end,
+              attendees: params.attendees,
+              recurrence: params.recurrence,
+              reminders: params.reminders
+            };
+            
+            // Tentar novamente após renovar o token
+            const response = await this.calendar.events.insert({
+              calendarId: params.calendarId,
+              requestBody
+            });
+            
+            return response.data;
+          } catch (refreshError) {
+            throw new Error(`Token inválido e não foi possível renová-lo: ${refreshError instanceof Error ? refreshError.message : String(refreshError)}`);
+          }
+        }
+      }
+      
       throw error;
     }
   }
 
   async updateEvent(params: UpdateEventParams): Promise<calendar_v3.Schema$Event> {
     try {
+      await this.ensureValidToken();
+      
       const response = await this.calendar.events.update({
         calendarId: params.calendarId,
         eventId: params.eventId,
@@ -338,28 +496,28 @@ class GoogleCalendarClient {
       
       return response.data;
     } catch (error) {
-      console.error('Error updating event:', error);
+      console.error('Erro ao atualizar evento:', error);
       throw error;
     }
   }
 
   async deleteEvent(calendarId: string, eventId: string): Promise<void> {
     try {
+      await this.ensureValidToken();
+      
       await this.calendar.events.delete({
         calendarId,
         eventId
       });
     } catch (error) {
-      console.error(`Error deleting event ${eventId}:`, error);
+      console.error(`Erro ao excluir evento ${eventId}:`, error);
       throw error;
     }
   }
 
   async findAvailability(params: FindAvailabilityParams): Promise<any> {
     try {
-      if (!Array.isArray(params.calendarIds)) {
-        throw new Error('O parâmetro calendarIds deve ser um array de strings. Exemplo: ["calendar_id_1", "calendar_id_2"]');
-      }
+      await this.ensureValidToken();
       
       const durationMs = params.durationMinutes * 60 * 1000;
       
@@ -421,6 +579,36 @@ class GoogleCalendarClient {
     } catch (error) {
       console.error('Error finding availability:', error);
       throw error;
+    }
+  }
+
+  // Função para obter o ID do calendário padrão (normalmente é o email do usuário)
+  async getDefaultCalendarId(): Promise<string> {
+    // Se já temos o email do usuário, use-o
+    if (this.userEmail) {
+      return this.userEmail;
+    }
+    
+    // Caso contrário, tente obter da lista de calendários
+    try {
+      const calendars = await this.listCalendars(10);
+      if (calendars.items && calendars.items.length > 0) {
+        // Procurar por calendário principal (geralmente tem primary = true)
+        const primaryCalendar = calendars.items.find(cal => cal.primary);
+        if (primaryCalendar && primaryCalendar.id) {
+          return primaryCalendar.id;
+        }
+        
+        // Se não encontrar um calendário marcado como principal, use o primeiro
+        if (calendars.items[0].id) {
+          return calendars.items[0].id;
+        }
+      }
+      
+      throw new Error('Não foi possível determinar o ID do calendário padrão');
+    } catch (error) {
+      console.error('Erro ao determinar calendário padrão:', error);
+      throw new Error('Não foi possível obter o ID do calendário padrão');
     }
   }
 }
@@ -492,7 +680,7 @@ async function withTimeout<T>(
 // Criar instância do servidor
 const mcpServer = new McpServer({
   name: "Google Calendar",
-  version: "0.0.4",
+  version: "0.0.7",
   description: "MCP server for Google Calendar integration",
   capabilities: {
     resources: {},
@@ -663,6 +851,149 @@ mcpServer.tool(
   }
 );
 
+// Adicionar nova ferramenta para listar eventos do calendário padrão
+mcpServer.tool(
+  "google_calendar_list_my_events",
+  "List events from the user's default calendar",
+  z.object({
+    timeMin: z.string().optional()
+      .describe("Start time in ISO format (e.g., '2023-05-01T00:00:00Z')"),
+    timeMax: z.string().optional()
+      .describe("End time in ISO format"),
+    maxResults: z.number().optional().default(10)
+      .describe("Maximum number of events to return (default 10)"),
+    pageToken: z.string().optional()
+      .describe("Token for retrieving the next page of results"),
+    q: z.string().optional()
+      .describe("Free text search terms")
+  }).shape,
+  async (params: Omit<ListEventsParams, 'calendarId'>) => {
+    try {
+      if (!checkRateLimit('list_my_events')) {
+        throw new Error('Rate limit exceeded for list_my_events');
+      }
+      
+      const client = getGoogleCalendarClient();
+      
+      // Obter ID do calendário padrão do usuário
+      const calendarId = await withTimeout(
+        () => client.getDefaultCalendarId()
+      );
+      
+      const result = await withTimeout(
+        () => client.listEvents({
+          ...params,
+          calendarId
+        })
+      );
+      
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
+      };
+    } catch (error) {
+      return {
+        content: [{ type: "text", text: error instanceof Error ? error.message : String(error) }],
+        isError: true
+      };
+    }
+  }
+);
+
+// Adicionar ferramenta para criar evento no calendário padrão
+mcpServer.tool(
+  "google_calendar_create_my_event",
+  "Create a new event in the user's default calendar",
+  z.object({
+    summary: z.string()
+      .describe("The title of the event"),
+    description: z.string().optional()
+      .describe("Description of the event"),
+    start: z.union([
+      z.string(),
+      z.object({
+        date: z.string().optional(),
+        dateTime: z.string().optional(),
+        timeZone: z.string().optional()
+      })
+    ]).transform(value => {
+      // Converter string para objeto com dateTime
+      if (typeof value === 'string') {
+        return { dateTime: value };
+      }
+      return value;
+    }).describe("Start time information with either date or dateTime"),
+    end: z.union([
+      z.string(),
+      z.object({
+        date: z.string().optional(),
+        dateTime: z.string().optional(),
+        timeZone: z.string().optional()
+      })
+    ]).transform(value => {
+      // Converter string para objeto com dateTime
+      if (typeof value === 'string') {
+        return { dateTime: value };
+      }
+      return value;
+    }).describe("End time information with either date or dateTime"),
+    location: z.string().optional()
+      .describe("Location of the event"),
+    attendees: z.union([
+      z.array(z.string()),
+      z.array(z.object({
+        email: z.string(),
+        responseStatus: z.string().optional()
+      }))
+    ]).transform(value => {
+      // Converter array de strings para array de objetos com email
+      if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string') {
+        return value.map(email => ({ email }));
+      }
+      return value;
+    }).optional().describe("List of attendees with email and optional response status"),
+    recurrence: z.array(z.string()).optional().nullable()
+      .transform(value => value === null ? undefined : value)
+      .describe("Recurrence rules for recurring events"),
+    reminders: z.object({
+      useDefault: z.boolean().optional(),
+      overrides: z.array(z.object({
+        method: z.string(),
+        minutes: z.number()
+      })).optional()
+    }).optional().describe("Reminder settings for the event")
+  }).shape,
+  async (params: Omit<CreateEventParams, 'calendarId'>) => {
+    try {
+      if (!checkRateLimit('create_my_event')) {
+        throw new Error('Rate limit exceeded for create_my_event');
+      }
+      
+      const client = getGoogleCalendarClient();
+      
+      // Obter ID do calendário padrão do usuário
+      const calendarId = await withTimeout(
+        () => client.getDefaultCalendarId()
+      );
+      
+      const result = await withTimeout(
+        () => client.createEvent({
+          ...params,
+          calendarId
+        })
+      );
+      
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
+      };
+    } catch (error) {
+      return {
+        content: [{ type: "text", text: error instanceof Error ? error.message : String(error) }],
+        isError: true
+      };
+    }
+  }
+);
+
 mcpServer.tool(
   "google_calendar_delete_event",
   "Delete an event from a calendar",
@@ -700,24 +1031,8 @@ mcpServer.tool(
         throw new Error('Rate limit exceeded for find_availability');
       }
       
-      // Garantir que calendarIds seja um array
-      if (!Array.isArray(params.calendarIds)) {
-        // Se for string vazia, criar array vazio
-        if (params.calendarIds === "") {
-          params.calendarIds = [];
-        } 
-        // Se for string única, converter para array com um elemento
-        else if (typeof params.calendarIds === 'string') {
-          params.calendarIds = [params.calendarIds];
-        }
-        // Caso contrário, inicializar como array vazio
-        else {
-          params.calendarIds = [];
-        }
-      }
-      
-      // Verificar se há pelo menos um calendário
-      if (params.calendarIds.length === 0) {
+      // Verificar se há pelo menos um calendário depois da transformação
+      if (!Array.isArray(params.calendarIds) || params.calendarIds.length === 0) {
         throw new Error('É necessário fornecer pelo menos um ID de calendário no parâmetro calendarIds');
       }
       
@@ -757,6 +1072,7 @@ export const GoogleCalendarAPI = {
   findAvailability: (client: GoogleCalendarClient, params: FindAvailabilityParams) => 
     client.findAvailability(params),
   createClient: () => getGoogleCalendarClient(),
+  getDefaultCalendarId: (client: GoogleCalendarClient) => client.getDefaultCalendarId(),
 };
 
 // Iniciar o servidor
