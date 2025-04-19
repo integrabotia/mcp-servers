@@ -301,6 +301,10 @@ class GoogleCalendarClient {
 
   async findAvailability(params: FindAvailabilityParams): Promise<any> {
     try {
+      if (!Array.isArray(params.calendarIds)) {
+        throw new Error('O parâmetro calendarIds deve ser um array de strings. Exemplo: ["calendar_id_1", "calendar_id_2"]');
+      }
+      
       const durationMs = params.durationMinutes * 60 * 1000;
       
       const allEvents: calendar_v3.Schema$Event[] = [];
